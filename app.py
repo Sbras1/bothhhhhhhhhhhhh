@@ -149,11 +149,18 @@ def getMessage():
     bot.process_new_updates([update])
     return "!", 200
 
-@app.route("/")
+@app.route("/set_webhook")
 def webhook():
     bot.remove_webhook()
     bot.set_webhook(url=SITE_URL + "/" + TOKEN)
-    return "!", 200
+    return "Webhook set successfully!", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    # تفعيل الـ webhook تلقائياً عند التشغيل
+    bot.remove_webhook()
+    bot.set_webhook(url=SITE_URL + "/" + TOKEN)
+    
+    # تشغيل السيرفر
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host="0.0.0.0", port=port)
