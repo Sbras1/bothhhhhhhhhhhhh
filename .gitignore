@@ -1,0 +1,42 @@
+# ملفات بايثون
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# البيئات الافتراضية
+venv/
+ENV/
+env/
+.venv
+
+# ملفات IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+# ملفات البيئة
+.env
+.env.local
