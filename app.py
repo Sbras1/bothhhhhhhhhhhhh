@@ -7,7 +7,7 @@ from telebot import types
 from flask import Flask, request, render_template_string
 
 # --- إعدادات البوت ---
-TOKEN = os.environ.get("TOKEN", "default_token")
+TOKEN = os.environ.get("BOT_TOKEN", "default_token")
 SITE_URL = os.environ.get("SITE_URL", "https://example.com")
 
 bot = telebot.TeleBot(TOKEN)
