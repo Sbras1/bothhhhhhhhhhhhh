@@ -53,223 +53,101 @@ HTML_PAGE = """
     <style>
         :root {
             --primary: #6c5ce7;
-            --primary-dark: #5849be;
             --bg-color: var(--tg-theme-bg-color, #1a1a1a);
             --text-color: var(--tg-theme-text-color, #ffffff);
             --card-bg: var(--tg-theme-secondary-bg-color, #2d2d2d);
-            --hint-color: var(--tg-theme-hint-color, #a8a8a8);
+            --green: #00b894;
         }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 16px;
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        .user-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        .user-info h3 { margin: 0; font-size: 1.1rem; }
-        .user-info p { margin: 4px 0 0; font-size: 0.85rem; color: var(--hint-color); }
-        .avatar {
-            width: 50px; height: 50px;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; color: white;
-            font-weight: bold;
-        }
-
-        h3.section-title { font-size: 1rem; margin-bottom: 15px; color: var(--primary); }
-        
-        input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 12px;
-            background-color: var(--bg-color);
-            border: 1px solid transparent;
-            border-radius: 12px;
-            color: var(--text-color);
-            font-family: inherit;
-            box-sizing: border-box;
-            transition: 0.3s;
-        }
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
-        }
-
-        button {
-            background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.1s;
-            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
-        }
-        button:active { transform: scale(0.98); }
-
-        .item-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .item-card:last-child { border-bottom: none; }
-        
-        .item-details b { display: block; font-size: 1.1rem; margin-bottom: 4px; }
-        .item-details small { color: var(--hint-color); font-size: 0.8rem; }
-        
-        .item-right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
-        }
-        
-        .price-tag {
-            background-color: rgba(108, 92, 231, 0.15);
-            color: #a29bfe;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        
-        .buy-btn {
-            background: linear-gradient(90deg, #00b894, #00cec9);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
-            transition: transform 0.1s;
-        }
-        .buy-btn:active { transform: scale(0.95); }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: 'Tajawal', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; }
+        .card { background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 14px; margin-bottom: 12px; background: var(--bg-color); border: 1px solid #444; border-radius: 12px; color: var(--text-color); box-sizing: border-box;}
+        button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; }
+        .balance-box { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; text-align: center; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .item-card { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #444; }
+        .buy-btn { background: var(--green); width: auto; padding: 8px 20px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-    <div class="card user-header">
-        <div class="user-info">
-            <h3>مرحباً، <span id="name">...</span> 👋</h3>
-            <p>ID: <span id="id">...</span></p>
-        </div>
-        <div class="avatar">👤</div>
+    <div class="balance-box">
+        <h2 style="margin:0">💰 رصيدك: <span id="balance">0</span> ريال</h2>
+        <small>للشحن تواصل مع الإدارة</small>
     </div>
 
     <div class="card">
-        <h3 class="section-title">➕ عرض سلعة جديدة</h3>
-        <input type="text" id="itemInput" placeholder="اسم السلعة (مثلاً: حساب ببجي)">
-        <input type="number" id="priceInput" placeholder="السعر (ريال)">
-        <button onclick="sellItem()">نشر الإعلان 🚀</button>
+        <h3>➕ بيع سلعة</h3>
+        <input type="text" id="itemInput" placeholder="اسم السلعة">
+        <input type="number" id="priceInput" placeholder="السعر">
+        <button onclick="sellItem()">نشر في السوق</button>
     </div>
 
-    <h3 style="margin: 20px 5px 10px;">🛒 المعروضات في السوق</h3>
-    <div id="market" class="card" style="padding: 0;">
-        {% if items|length == 0 %}
-            <p style="text-align: center; padding: 20px; color: gray;">لا توجد سلع معروضة حالياً</p>
-        {% else %}
-            {% for item in items %}
-            <div class="item-card">
-                <div class="item-details">
-                    <b>{{ item.item_name }}</b>
-                    <small>البائع: {{ item.seller_name }}</small>
-                </div>
-                <div class="item-right">
-                    <div class="price-tag">{{ item.price }} ريال</div>
-                    <a href="tg://user?id={{ item.seller_id }}" class="buy-btn">
-                        شراء 🛒
-                    </a>
-                </div>
+    <h3>🛒 السوق</h3>
+    <div id="market" class="card">
+        {% for item in items %}
+        <div class="item-card">
+            <div>
+                <b style="font-size:1.1rem">{{ item.item_name }}</b><br>
+                <small style="color:gray">بائع: {{ item.seller_name }}</small>
+                <div style="color: #a29bfe; font-weight:bold">{{ item.price }} ريال</div>
             </div>
-            {% endfor %}
-        {% endif %}
+            {% if item.seller_id|string != current_user_id|string %}
+                <button class="buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}')">شراء ❄️</button>
+            {% else %}
+                <small>سلعتك</small>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
-
-        tg.MainButton.textColor = '#FFFFFF';
-        tg.MainButton.color = '#6c5ce7';
-
         let user = tg.initDataUnsafe.user;
-        if (user) {
-            document.getElementById("name").innerText = user.first_name;
-            document.getElementById("id").innerText = user.id;
-        }
+        let userBalance = {{ balance }};
+
+        document.getElementById("balance").innerText = userBalance;
 
         function sellItem() {
-            let itemName = document.getElementById("itemInput").value;
+            let name = document.getElementById("itemInput").value;
             let price = document.getElementById("priceInput").value;
-
-            if(!itemName || !price) {
-                tg.showAlert("يرجى كتابة اسم السلعة والسعر");
-                return;
-            }
-
-            let btn = document.querySelector("button");
-            let oldText = btn.innerText;
-            btn.innerText = "جاري النشر...";
-            btn.disabled = true;
+            if(!name || !price) return tg.showAlert("أدخل البيانات");
 
             fetch('/sell', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    seller_name: user ? user.first_name : "مجهول",
-                    seller_id: user ? user.id : 0,
-                    item_name: itemName,
+                    seller_name: user.first_name,
+                    seller_id: user.id,
+                    item_name: name,
                     price: price
                 })
-            }).then(response => {
-                if(response.ok) {
-                    tg.showPopup({
-                        title: "تم بنجاح! ✅",
-                        message: "تمت إضافة السلعة إلى السوق",
-                        buttons: [{type: "ok", text: "حسناً"}]
-                    }, function() {
-                        location.reload();
+            }).then(() => location.reload());
+        }
+
+        function buyItem(itemIndex, price) {
+            if(userBalance < price) {
+                tg.showAlert("❌ رصيدك غير كافي! اشحن محفظتك أولاً.");
+                return;
+            }
+
+            tg.showConfirm("سيتم خصم المبلغ وحجزه حتى تستلم السلعة.\\nهل أنت متأكد؟", function(ok) {
+                if(ok) {
+                    fetch('/buy', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            buyer_id: user.id,
+                            buyer_name: user.first_name,
+                            item_index: itemIndex
+                        })
+                    }).then(r => r.json()).then(data => {
+                        if(data.status == 'success') {
+                            tg.close();
+                        } else {
+                            tg.showAlert(data.message);
+                        }
                     });
                 }
-            }).catch(err => {
-                btn.innerText = oldText;
-                btn.disabled = false;
-                tg.showAlert("حدث خطأ في الاتصال");
             });
         }
     </script>
