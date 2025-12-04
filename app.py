@@ -463,6 +463,14 @@ def login_page():
                 width: 100%;
             }}
             .logo {{ font-size: 60px; margin-bottom: 20px; }}
+            .logo a {{
+                text-decoration: none;
+                transition: transform 0.3s;
+                display: inline-block;
+            }}
+            .logo a:hover {{
+                transform: scale(1.1);
+            }}
             h2 {{ color: #667eea; margin-bottom: 15px; font-size: 28px; }}
             p {{ color: #666; margin-bottom: 35px; line-height: 1.6; }}
             .telegram-login {{ 
@@ -493,7 +501,7 @@ def login_page():
     </head>
     <body>
         <div class="login-container">
-            <div class="logo">🏪</div>
+            <div class="logo"><a href="/">🏪</a></div>
             <h2>مرحباً بك في سوق البوت</h2>
             <p>سجل دخولك عبر تيليجرام للوصول إلى محفظتك وإدارة مشترياتك</p>
             
