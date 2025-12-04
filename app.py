@@ -5,16 +5,40 @@ import os
 import telebot
 from telebot import types
 from flask import Flask, request, render_template_string
+import json
+import random
 
 # --- إعدادات البوت ---
+# غير هذا الرقم إلى الآيدي الخاص بك في تيليجرام لتتمكن من شحن الأرصدة
+ADMIN_ID = 5665438577  
 TOKEN = os.environ.get("BOT_TOKEN", "default_token")
 SITE_URL = os.environ.get("SITE_URL", "https://example.com")
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# قائمة بسيطة لتخزين المنتجات في الذاكرة (للتجربة)
+# --- قواعد البيانات (في الذاكرة حالياً) ---
+# ملاحظة: هذه البيانات ستمسح عند إعادة تشغيل السيرفر.
+
+# قائمة المنتجات
 marketplace_items = []
+
+# بيانات المستخدمين (الرصيد)
+# الشكل: { user_id: balance }
+users_wallets = {}
+
+# العمليات المعلقة (المبالغ المحجوزة)
+transactions = {}
+
+# --- دوال مساعدة ---
+def get_balance(user_id):
+    return users_wallets.get(str(user_id), 0.0)
+
+def add_balance(user_id, amount):
+    uid = str(user_id)
+    if uid not in users_wallets:
+        users_wallets[uid] = 0.0
+    users_wallets[uid] += float(amount)
 
 # --- كود صفحة الويب (HTML + JavaScript) ---
 HTML_PAGE = """
@@ -254,40 +278,132 @@ HTML_PAGE = """
 """
 
 # --- أوامر البوت ---
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "أهلاً بك! استخدم الأمر /web لفتح السوق.")
+    bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\nاستخدم /web للدخول.\nاستخدم /my_id لمعرفة الآيدي الخاص بك.")
+
+@bot.message_handler(commands=['my_id'])
+def my_id(message):
+    bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`", parse_mode="Markdown")
+
+# أمر خاص بالآدمن لشحن رصيد المستخدمين
+# طريقة الاستخدام: /add ID AMOUNT
+# مثال: /add 123456789 50
+@bot.message_handler(commands=['add'])
+def add_funds(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "⛔ هذا الأمر للمشرف فقط.")
+    
+    try:
+        parts = message.text.split()
+        target_id = parts[1]
+        amount = float(parts[2])
+        add_balance(target_id, amount)
+        bot.reply_to(message, f"✅ تم إضافة {amount} ريال للمستخدم {target_id}")
+        bot.send_message(target_id, f"🎉 تم شحن رصيدك بمبلغ {amount} ريال!")
+    except:
+        bot.reply_to(message, "خطأ! الاستخدام: /add ID AMOUNT")
 
 @bot.message_handler(commands=['web'])
 def open_web_app(message):
     markup = types.InlineKeyboardMarkup()
-    # زر لفتح تطبيق الويب
-    web_app_button = types.InlineKeyboardButton(
-        text="فتح السوق والبيع 🏪", 
-        web_app=types.WebAppInfo(url=SITE_URL)
-    )
+    web_app_button = types.InlineKeyboardButton(text="فتح السوق 🏪", web_app=types.WebAppInfo(url=SITE_URL))
     markup.add(web_app_button)
-    bot.send_message(message.chat.id, "اضغط أدناه للدخول إلى السوق:", reply_markup=markup)
+    bot.send_message(message.chat.id, "تفضل بدخول السوق:", reply_markup=markup)
+
+# زر تأكيد الاستلام (يحرر المال للبائع)
+@bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_'))
+def confirm_transaction(call):
+    trans_id = call.data.split('_')[1]
+    
+    if trans_id not in transactions:
+        return bot.answer_callback_query(call.id, "هذه العملية غير موجودة")
+    
+    trans = transactions[trans_id]
+    
+    # التأكد أن الذي يضغط هو المشتري فقط
+    if str(call.from_user.id) != str(trans['buyer_id']):
+        return bot.answer_callback_query(call.id, "فقط المشتري يمكنه تأكيد الاستلام!", show_alert=True)
+
+    # تحرير المال للبائع
+    seller_id = trans['seller_id']
+    amount = trans['amount']
+    
+    # إضافة الرصيد للبائع
+    add_balance(seller_id, amount)
+    
+    # حذف العملية من الانتظار
+    del transactions[trans_id]
+    
+    bot.edit_message_text(f"✅ تم تأكيد استلام السلعة: {trans['item_name']}\nتم تحويل {amount} ريال للبائع.", call.message.chat.id, call.message.message_id)
+    bot.send_message(seller_id, f"🤑 مبروك! قام المشتري بتأكيد الاستلام.\nتم إضافة {amount} ريال لرصيدك.")
 
 # --- مسارات الموقع (Flask) ---
 
-# الصفحة الرئيسية للسوق
 @app.route('/')
 def index():
-    # كود HTML للصفحة (موجود في الأسفل لتسهيل القراءة)
-    return render_template_string(HTML_PAGE, items=marketplace_items)
+    return render_template_string(HTML_PAGE, items=marketplace_items, balance=0, current_user_id=0)
 
-# استقبال طلب بيع جديد من الموقع
 @app.route('/sell', methods=['POST'])
 def sell_item():
     data = request.json
-    # إضافة المنتج للقائمة
-    marketplace_items.append({
-        'seller_name': data.get('seller_name'),
-        'seller_id': data.get('seller_id'),
-        'item_name': data.get('item_name'),
-        'price': data.get('price')
-    })
+    marketplace_items.append(data)
+    return {'status': 'success'}
+
+@app.route('/buy', methods=['POST'])
+def buy_item():
+    data = request.json
+    buyer_id = str(data.get('buyer_id'))
+    item_index = int(data.get('item_index'))
+    
+    if item_index >= len(marketplace_items):
+        return {'status': 'error', 'message': 'السلعة غير موجودة'}
+    
+    item = marketplace_items[item_index]
+    price = float(item['price'])
+    
+    # 1. التحقق من الرصيد
+    buyer_balance = get_balance(buyer_id)
+    if buyer_balance < price:
+        return {'status': 'error', 'message': 'الرصيد غير كافي'}
+    
+    # 2. خصم الرصيد (تجميده)
+    users_wallets[buyer_id] -= price
+    
+    # 3. إنشاء عملية جديدة
+    trans_id = str(random.randint(10000, 99999))
+    transactions[trans_id] = {
+        'buyer_id': buyer_id,
+        'seller_id': item['seller_id'],
+        'amount': price,
+        'item_name': item['item_name']
+    }
+    
+    # 4. إزالة السلعة من السوق
+    del marketplace_items[item_index]
+    
+    # 5. إرسال الإشعارات
+    
+    # إشعار للبائع
+    bot.send_message(item['seller_id'], 
+                     f"🔔 **طلب شراء جديد!**\n"
+                     f"شخص ما اشترى: {item['item_name']}\n"
+                     f"المبلغ ({price} ريال) محفوظ لدى البوت ❄️.\n"
+                     f"تواصل مع المشتري وسلمه السلعة.\n"
+                     f"آيدي المشتري: `{buyer_id}`", parse_mode="Markdown")
+                     
+    # إشعار للمشتري مع زر التأكيد
+    markup = types.InlineKeyboardMarkup()
+    confirm_btn = types.InlineKeyboardButton("✅ استلمت السلعة (حرر المبلغ)", callback_data=f"confirm_{trans_id}")
+    markup.add(confirm_btn)
+    
+    bot.send_message(buyer_id,
+                     f"❄️ **تم خصم {price} ريال وحجزها.**\n"
+                     f"السلعة: {item['item_name']}\n"
+                     f"لا تضغط الزر أدناه إلا بعد أن تستلم السلعة من البائع وتتأكد منها!", 
+                     reply_markup=markup, parse_mode="Markdown")
+
     return {'status': 'success'}
 
 # لاستقبال تحديثات تيليجرام (Webhook)
