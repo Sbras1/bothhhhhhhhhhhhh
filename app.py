@@ -197,12 +197,82 @@ HTML_PAGE = """
         .sell-section.open {
             max-height: 400px;
         }
+        
+        /* نافذة تسجيل الدخول المنبثقة */
+        .login-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .login-modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            color: #2d3436;
+        }
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #636e72;
+        }
+        .close-modal:hover {
+            color: #2d3436;
+        }
+        .modal-logo {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .modal-title {
+            color: #6c5ce7;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .modal-text {
+            color: #636e72;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        .telegram-login-wrapper {
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
+    <!-- نافذة تسجيل الدخول المنبثقة -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-modal-content">
+            <span class="close-modal" onclick="closeLoginModal()">✕</span>
+            <div class="modal-logo">🏪</div>
+            <h2 class="modal-title">تسجيل الدخول</h2>
+            <p class="modal-text">سجل دخولك عبر تيليجرام للوصول إلى حسابك ومحفظتك</p>
+            <div class="telegram-login-wrapper">
+                <script async src="https://telegram.org/js/telegram-widget.js?22" 
+                        data-telegram-login="tesdtdrbot" 
+                        data-size="large" 
+                        data-radius="12" 
+                        data-auth-url="{SITE_URL}/login_check"
+                        data-request-access="write">
+                </script>
+            </div>
+        </div>
+    </div>
 
     <!-- زر حسابي -->
-    <div class="account-btn" onclick="toggleAccount()">
+    <div class="account-btn" onclick="toggleAccount()" id="accountBtn">
         <div class="account-btn-left">
             <span class="account-icon">👤</span>
             <span>حسابي</span>
@@ -270,6 +340,9 @@ HTML_PAGE = """
         let user = tg.initDataUnsafe.user;
         let userBalance = 0;
 
+        // التحقق من أننا داخل Telegram Web App
+        const isTelegramWebApp = tg.initData !== '';
+        
         // عرض بيانات المستخدم
         if(user && user.id) {
             document.getElementById("userName").innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
@@ -286,10 +359,30 @@ HTML_PAGE = """
         
         // دالة لفتح/إغلاق قسم حسابي
         function toggleAccount() {
+            // إذا كان المستخدم في متصفح عادي (ليس Telegram Web App)
+            if(!isTelegramWebApp) {
+                // توجيهه لصفحة تسجيل الدخول المدمجة
+                showLoginModal();
+                return;
+            }
+            
+            // إذا كان في Telegram، افتح/أغلق القسم
             const content = document.getElementById("accountContent");
             const arrow = document.getElementById("accountArrow");
             content.classList.toggle("open");
             arrow.classList.toggle("open");
+        }
+        
+        // دالة لعرض نافذة تسجيل الدخول
+        function showLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.style.display = 'flex';
+        }
+        
+        // دالة لإغلاق النافذة
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.style.display = 'none';
         }
         
         // دالة لفتح/إغلاق قسم إضافة سلعة
@@ -352,23 +445,7 @@ HTML_PAGE = """
 def send_welcome(message):
     bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\n\n"
                           "📱 /web - للدخول للسوق\n"
-                          "🔐 /login - لتسجيل الدخول وعرض رصيدك\n"
                           "🆔 /my_id - لمعرفة الآيدي الخاص بك")
-
-@bot.message_handler(commands=['login'])
-def send_login_link(message):
-    login_url = SITE_URL + "/login"
-    bot.send_message(message.chat.id, 
-                     f"🔐 **لتسجيل الدخول وعرض رصيدك:**\n\n"
-                     f"⚠️ **مهم:** افتح الرابط في متصفح خارجي (Chrome/Safari)\n"
-                     f"❌ لا تفتحه من داخل تيليجرام!\n\n"
-                     f"🔗 الرابط:\n{login_url}\n\n"
-                     f"💡 **طريقة الفتح الصحيحة:**\n"
-                     f"1️⃣ انسخ الرابط\n"
-                     f"2️⃣ افتح متصفح جوالك\n"
-                     f"3️⃣ الصق الرابط واضغط Enter\n"
-                     f"4️⃣ سيظهر زر تسجيل الدخول",
-                     parse_mode="Markdown")
 
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
@@ -428,113 +505,7 @@ def confirm_transaction(call):
 
 # --- مسارات الموقع (Flask) ---
 
-# صفحة تسجيل الدخول
-@app.route('/login')
-def login_page():
-    # استخراج اسم البوت من التوكن (أو يمكنك تعيينه يدوياً)
-    bot_username = "tesdtdrbot"  # غير هذا لاسم البوت الخاص بك بدون @
-    
-    return f"""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تسجيل الدخول - سوق البوت</title>
-        <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-        <style>
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{ 
-                font-family: 'Tajawal', sans-serif; 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 20px;
-            }}
-            .login-container {{
-                background: white;
-                padding: 50px 40px;
-                border-radius: 25px;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                text-align: center;
-                max-width: 450px;
-                width: 100%;
-            }}
-            .logo {{ font-size: 60px; margin-bottom: 20px; }}
-            .logo a {{
-                text-decoration: none;
-                transition: transform 0.3s;
-                display: inline-block;
-            }}
-            .logo a:hover {{
-                transform: scale(1.1);
-            }}
-            h2 {{ color: #667eea; margin-bottom: 15px; font-size: 28px; }}
-            p {{ color: #666; margin-bottom: 35px; line-height: 1.6; }}
-            .telegram-login {{ 
-                display: inline-block;
-                margin: 20px 0;
-            }}
-            .info-box {{
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 15px;
-                margin-top: 30px;
-                text-align: right;
-            }}
-            .info-box h4 {{ color: #667eea; margin-bottom: 10px; }}
-            .info-box ul {{ list-style: none; padding: 0; }}
-            .info-box li {{ padding: 8px 0; color: #555; }}
-            .info-box li:before {{ content: "✓ "; color: #00b894; font-weight: bold; }}
-            .warning {{
-                background: #fff3cd;
-                border: 2px solid #ffc107;
-                padding: 15px;
-                border-radius: 10px;
-                margin-bottom: 25px;
-                color: #856404;
-            }}
-            .warning strong {{ display: block; margin-bottom: 5px; }}
-        </style>
-    </head>
-    <body>
-        <div class="login-container">
-            <div class="logo"><a href="/">🏪</a></div>
-            <h2>مرحباً بك في سوق البوت</h2>
-            <p>سجل دخولك عبر تيليجرام للوصول إلى محفظتك وإدارة مشترياتك</p>
-            
-            <div class="warning">
-                <strong>⚠️ تنبيه مهم!</strong>
-                إذا لم يظهر الزر أدناه، افتح هذه الصفحة في متصفح خارجي (Chrome/Safari)
-            </div>
-            
-            <div class="telegram-login">
-                <script async src="https://telegram.org/js/telegram-widget.js?22" 
-                        data-telegram-login="{bot_username}" 
-                        data-size="large" 
-                        data-radius="12" 
-                        data-auth-url="{SITE_URL}/login_check"
-                        data-request-access="write">
-                </script>
-            </div>
-            
-            <div class="info-box">
-                <h4>بعد تسجيل الدخول ستتمكن من:</h4>
-                <ul>
-                    <li>عرض رصيدك المالي</li>
-                    <li>شراء المنتجات بأمان</li>
-                    <li>عرض سلعك للبيع</li>
-                    <li>تتبع معاملاتك</li>
-                </ul>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-# مسار استقبال بيانات الدخول
+# مسار استقبال بيانات الدخول من Telegram Widget
 @app.route('/login_check')
 def login_check():
     auth_data = request.args.to_dict()
