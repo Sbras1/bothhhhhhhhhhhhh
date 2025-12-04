@@ -119,6 +119,13 @@ HTML_PAGE = """
         .item-details b { display: block; font-size: 1.1rem; margin-bottom: 4px; }
         .item-details small { color: var(--hint-color); font-size: 0.8rem; }
         
+        .item-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        
         .price-tag {
             background-color: rgba(108, 92, 231, 0.15);
             color: #a29bfe;
@@ -127,6 +134,22 @@ HTML_PAGE = """
             font-weight: bold;
             font-size: 0.9rem;
         }
+        
+        .buy-btn {
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+            transition: transform 0.1s;
+        }
+        .buy-btn:active { transform: scale(0.95); }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -162,7 +185,12 @@ HTML_PAGE = """
                     <b>{{ item.item_name }}</b>
                     <small>البائع: {{ item.seller_name }}</small>
                 </div>
-                <div class="price-tag">{{ item.price }} ريال</div>
+                <div class="item-right">
+                    <div class="price-tag">{{ item.price }} ريال</div>
+                    <a href="tg://user?id={{ item.seller_id }}" class="buy-btn">
+                        شراء 🛒
+                    </a>
+                </div>
             </div>
             {% endfor %}
         {% endif %}
