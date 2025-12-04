@@ -103,9 +103,17 @@ HTML_PAGE = """
         let tg = window.Telegram.WebApp;
         tg.expand();
         let user = tg.initDataUnsafe.user;
-        let userBalance = {{ balance }};
+        let userBalance = 0;
 
-        document.getElementById("balance").innerText = userBalance;
+        // جلب الرصيد الحقيقي من السيرفر
+        if(user && user.id) {
+            fetch('/get_balance?user_id=' + user.id)
+                .then(r => r.json())
+                .then(data => {
+                    userBalance = data.balance;
+                    document.getElementById("balance").innerText = userBalance;
+                });
+        }
 
         function sellItem() {
             let name = document.getElementById("itemInput").value;
@@ -222,6 +230,12 @@ def confirm_transaction(call):
 @app.route('/')
 def index():
     return render_template_string(HTML_PAGE, items=marketplace_items, balance=0, current_user_id=0)
+
+@app.route('/get_balance')
+def get_balance_api():
+    user_id = request.args.get('user_id')
+    balance = get_balance(user_id)
+    return {'balance': balance}
 
 @app.route('/sell', methods=['POST'])
 def sell_item():
