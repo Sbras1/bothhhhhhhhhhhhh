@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
 import telebot
 from telebot import types
 from flask import Flask, request, render_template_string
@@ -156,11 +157,6 @@ def webhook():
     return "Webhook set successfully!", 200
 
 if __name__ == "__main__":
-    # تفعيل الـ webhook تلقائياً عند التشغيل
-    bot.remove_webhook()
-    bot.set_webhook(url=SITE_URL + "/" + TOKEN)
-    
-    # تشغيل السيرفر
-    import os
-    port = int(os.environ.get('PORT', 5000))
+    # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
