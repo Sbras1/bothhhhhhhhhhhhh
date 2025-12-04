@@ -2,15 +2,22 @@
 # -*- coding: utf-8 -*-
 
 import os
-import telebot
-from telebot import types
 from flask import Flask, request, render_template_string
 
 # --- إعدادات البوت ---
 TOKEN = os.environ.get("TOKEN")
-SITE_URL = os.environ.get("SITE_URL") 
+SITE_URL = os.environ.get("SITE_URL")
 
-bot = telebot.TeleBot(TOKEN)
+# استيراد telebot بعد التأكد من وجود المتغيرات
+try:
+    import telebot
+    from telebot import types
+    bot = telebot.TeleBot(TOKEN) if TOKEN else None
+except ImportError:
+    telebot = None
+    types = None
+    bot = None
+    print("Warning: telebot not installed")
 app = Flask(__name__)
 
 # قائمة بسيطة لتخزين المنتجات في الذاكرة (للتجربة)
@@ -107,18 +114,20 @@ HTML_PAGE = """
 # --- أوامر البوت ---
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "أهلاً بك! استخدم الأمر /web لفتح السوق.")
+    if bot:
+        bot.reply_to(message, "أهلاً بك! استخدم الأمر /web لفتح السوق.")
 
 @bot.message_handler(commands=['web'])
 def open_web_app(message):
-    markup = types.InlineKeyboardMarkup()
-    # زر لفتح تطبيق الويب
-    web_app_button = types.InlineKeyboardButton(
-        text="فتح السوق والبيع 🏪", 
-        web_app=types.WebAppInfo(url=SITE_URL)
-    )
-    markup.add(web_app_button)
-    bot.send_message(message.chat.id, "اضغط أدناه للدخول إلى السوق:", reply_markup=markup)
+    if bot and types:
+        markup = types.InlineKeyboardMarkup()
+        # زر لفتح تطبيق الويب
+        web_app_button = types.InlineKeyboardButton(
+            text="فتح السوق والبيع 🏪", 
+            web_app=types.WebAppInfo(url=SITE_URL)
+        )
+        markup.add(web_app_button)
+        bot.send_message(message.chat.id, "اضغط أدناه للدخول إلى السوق:", reply_markup=markup)
 
 # --- مسارات الموقع (Flask) ---
 
@@ -142,18 +151,21 @@ def sell_item():
     return {'status': 'success'}
 
 # لاستقبال تحديثات تيليجرام (Webhook)
-@app.route('/' + TOKEN, methods=['POST'])
+@app.route('/' + str(TOKEN) if TOKEN else '/webhook', methods=['POST'])
 def getMessage():
-    json_string = request.get_data().decode('utf-8')
-    update = telebot.types.Update.de_json(json_string)
-    bot.process_new_updates([update])
+    if bot and telebot:
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
     return "!", 200
 
 @app.route("/set_webhook")
 def webhook():
-    bot.remove_webhook()
-    bot.set_webhook(url=SITE_URL + "/" + TOKEN)
-    return "Webhook set successfully!", 200
+    if bot and TOKEN and SITE_URL:
+        bot.remove_webhook()
+        bot.set_webhook(url=SITE_URL + "/" + TOKEN)
+        return "Webhook set successfully!", 200
+    return "Bot not configured", 500
 
 if __name__ == "__main__":
     # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
