@@ -471,10 +471,13 @@ def add_funds(message):
 
 @bot.message_handler(commands=['web'])
 def open_web_app(message):
-    markup = types.InlineKeyboardMarkup()
-    web_app_button = types.InlineKeyboardButton(text="فتح السوق 🏪", web_app=types.WebAppInfo(url=SITE_URL))
-    markup.add(web_app_button)
-    bot.send_message(message.chat.id, "تفضل بدخول السوق:", reply_markup=markup)
+    bot.send_message(message.chat.id, 
+                     f"🏪 **مرحباً بك في السوق!**\n\n"
+                     f"افتح الرابط التالي في متصفحك لتصفح المنتجات:\n\n"
+                     f"🔗 {SITE_URL}\n\n"
+                     f"💡 **نصيحة:** انسخ الرابط وافتحه في متصفح خارجي (Chrome/Safari) "
+                     f"للحصول على أفضل تجربة!",
+                     parse_mode="Markdown")
 
 # زر تأكيد الاستلام (يحرر المال للبائع)
 @bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_'))
