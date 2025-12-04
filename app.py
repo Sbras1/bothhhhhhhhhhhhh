@@ -34,6 +34,10 @@ users_wallets = {}
 # العمليات المعلقة (المبالغ المحجوزة)
 transactions = {}
 
+# الروابط المؤقتة للمستخدمين
+# الشكل: { token: {user_id, name, created_at} }
+magic_links = {}
+
 # --- دوال مساعدة ---
 def get_balance(user_id):
     return users_wallets.get(str(user_id), 0.0)
@@ -43,6 +47,34 @@ def add_balance(user_id, amount):
     if uid not in users_wallets:
         users_wallets[uid] = 0.0
     users_wallets[uid] += float(amount)
+
+# دالة لتوليد رابط مؤقت
+def generate_magic_link(user_id, user_name):
+    # توليد توكن عشوائي آمن
+    token = hashlib.sha256(f"{user_id}{user_name}{time.time()}{random.random()}".encode()).hexdigest()[:32]
+    
+    # حفظ بيانات الرابط (صالح لمدة 30 دقيقة)
+    magic_links[token] = {
+        'user_id': str(user_id),
+        'name': user_name,
+        'created_at': time.time()
+    }
+    
+    return f"{SITE_URL}/m/{token}"
+
+# دالة للتحقق من صلاحية الرابط المؤقت
+def verify_magic_link(token):
+    if token not in magic_links:
+        return None
+    
+    link_data = magic_links[token]
+    
+    # التحقق من أن الرابط لم ينتهي (30 دقيقة)
+    if time.time() - link_data['created_at'] > 1800:  # 30 * 60 ثانية
+        del magic_links[token]
+        return None
+    
+    return link_data
 
 # دالة للتحقق من أن البيانات قادمة فعلاً من تيليجرام (أمان)
 def check_telegram_authorization(auth_data):
@@ -338,15 +370,18 @@ HTML_PAGE = """
         let tg = window.Telegram.WebApp;
         tg.expand();
         let user = tg.initDataUnsafe.user;
-        let userBalance = 0;
+        let userBalance = {{ balance }};
+        let currentUserId = {{ current_user_id }};
 
         // التحقق من أننا داخل Telegram Web App
         const isTelegramWebApp = tg.initData !== '';
         
         // عرض بيانات المستخدم
         if(user && user.id) {
+            // مستخدم Telegram Web App
             document.getElementById("userName").innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
             document.getElementById("userId").innerText = user.id;
+            currentUserId = user.id;
             
             // جلب الرصيد الحقيقي من السيرفر
             fetch('/get_balance?user_id=' + user.id)
@@ -355,18 +390,29 @@ HTML_PAGE = """
                     userBalance = data.balance;
                     document.getElementById("balance").innerText = userBalance;
                 });
+        } else if(currentUserId && currentUserId != 0) {
+            // مستخدم مسجل دخول عبر الرابط المؤقت أو الجلسة
+            document.getElementById("userName").innerText = "{{ user_name }}";
+            document.getElementById("userId").innerText = currentUserId;
+            document.getElementById("balance").innerText = userBalance;
+            
+            // فتح قسم الحساب تلقائياً
+            const content = document.getElementById("accountContent");
+            const arrow = document.getElementById("accountArrow");
+            content.classList.add("open");
+            arrow.classList.add("open");
         }
         
         // دالة لفتح/إغلاق قسم حسابي
         function toggleAccount() {
-            // إذا كان المستخدم في متصفح عادي (ليس Telegram Web App)
-            if(!isTelegramWebApp) {
+            // إذا كان المستخدم في متصفح عادي وغير مسجل دخول
+            if(!isTelegramWebApp && (!currentUserId || currentUserId == 0)) {
                 // توجيهه لصفحة تسجيل الدخول المدمجة
                 showLoginModal();
                 return;
             }
             
-            // إذا كان في Telegram، افتح/أغلق القسم
+            // إذا كان مسجل دخول، افتح/أغلق القسم
             const content = document.getElementById("accountContent");
             const arrow = document.getElementById("accountArrow");
             content.classList.toggle("open");
@@ -444,12 +490,34 @@ HTML_PAGE = """
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\n\n"
+                          "🔗 /link - احصل على رابط خاص بك (مؤقت 30 دقيقة)\n"
                           "📱 /web - للدخول للسوق\n"
                           "🆔 /my_id - لمعرفة الآيدي الخاص بك")
 
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
     bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`", parse_mode="Markdown")
+
+@bot.message_handler(commands=['link'])
+def get_magic_link(message):
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+    if message.from_user.last_name:
+        user_name += ' ' + message.from_user.last_name
+    
+    # توليد رابط مؤقت
+    magic_link = generate_magic_link(user_id, user_name)
+    
+    bot.send_message(message.chat.id,
+                     f"🔗 **رابطك الخاص للسوق:**\n\n"
+                     f"`{magic_link}`\n\n"
+                     f"⏱️ **صالح لمدة 30 دقيقة**\n\n"
+                     f"✨ افتحه في المتصفح وسيتم تسجيل دخولك تلقائياً مع:\n"
+                     f"• عرض رصيدك\n"
+                     f"• إمكانية البيع والشراء\n"
+                     f"• إدارة حسابك\n\n"
+                     f"💡 انسخ الرابط وافتحه في متصفح خارجي (Chrome/Safari)",
+                     parse_mode="Markdown")
 
 # أمر خاص بالآدمن لشحن رصيد المستخدمين
 # طريقة الاستخدام: /add ID AMOUNT
@@ -507,6 +575,74 @@ def confirm_transaction(call):
     bot.send_message(seller_id, f"🤑 مبروك! قام المشتري بتأكيد الاستلام.\nتم إضافة {amount} ريال لرصيدك.")
 
 # --- مسارات الموقع (Flask) ---
+
+# مسار الرابط المؤقت (Magic Link)
+@app.route('/m/<token>')
+def magic_link_login(token):
+    # التحقق من صلاحية الرابط
+    link_data = verify_magic_link(token)
+    
+    if not link_data:
+        return """
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>رابط منتهي</title>
+            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    font-family: 'Tajawal', sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+                .container {
+                    background: white;
+                    padding: 50px;
+                    border-radius: 20px;
+                    text-align: center;
+                    max-width: 400px;
+                }
+                .icon { font-size: 80px; margin-bottom: 20px; }
+                h2 { color: #e74c3c; margin-bottom: 15px; }
+                p { color: #666; line-height: 1.6; margin-bottom: 25px; }
+                a {
+                    display: inline-block;
+                    padding: 15px 30px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                    font-weight: bold;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">⏱️</div>
+                <h2>الرابط منتهي الصلاحية</h2>
+                <p>هذا الرابط إما انتهت صلاحيته (30 دقيقة) أو تم استخدامه بالفعل.</p>
+                <p>احصل على رابط جديد من البوت باستخدام الأمر <code>/link</code></p>
+                <a href="/">العودة للصفحة الرئيسية</a>
+            </div>
+        </body>
+        </html>
+        """
+    
+    # تسجيل دخول المستخدم تلقائياً
+    session['user_id'] = link_data['user_id']
+    session['user_name'] = link_data['name']
+    
+    # حذف الرابط بعد الاستخدام (استخدام واحد فقط)
+    del magic_links[token]
+    
+    # توجيه للصفحة الرئيسية
+    return redirect('/')
 
 # مسار استقبال بيانات الدخول من Telegram Widget
 @app.route('/login_check')
@@ -568,11 +704,29 @@ def login_check():
 
 @app.route('/')
 def index():
-    return render_template_string(HTML_PAGE, items=marketplace_items, balance=0, current_user_id=0)
+    # التحقق من وجود جلسة مسجلة
+    user_id = session.get('user_id')
+    user_name = session.get('user_name', session.get('first_name', 'ضيف'))
+    
+    # إذا كان المستخدم مسجل دخول، جلب رصيده
+    balance = 0
+    if user_id:
+        balance = get_balance(user_id)
+    
+    return render_template_string(HTML_PAGE, 
+                                   items=marketplace_items, 
+                                   balance=balance, 
+                                   current_user_id=user_id or 0,
+                                   user_name=user_name)
 
 @app.route('/get_balance')
 def get_balance_api():
-    user_id = request.args.get('user_id')
+    # محاولة الحصول على user_id من الطلب أو من الجلسة
+    user_id = request.args.get('user_id') or session.get('user_id')
+    
+    if not user_id:
+        return {'balance': 0}
+    
     balance = get_balance(user_id)
     return {'balance': balance}
 
