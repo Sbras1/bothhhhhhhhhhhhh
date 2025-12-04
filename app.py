@@ -92,22 +92,157 @@ HTML_PAGE = """
         .card { background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         input { width: 100%; padding: 14px; margin-bottom: 12px; background: var(--bg-color); border: 1px solid #444; border-radius: 12px; color: var(--text-color); box-sizing: border-box;}
         button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; }
-        .balance-box { background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; text-align: center; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
         .item-card { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #444; }
         .buy-btn { background: var(--green); width: auto; padding: 8px 20px; font-size: 0.9rem; }
+        
+        /* زر حسابي */
+        .account-btn {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 18px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+            transition: all 0.3s;
+        }
+        .account-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+        .account-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .account-icon {
+            font-size: 28px;
+        }
+        .arrow {
+            transition: transform 0.3s;
+            font-size: 16px;
+        }
+        .arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        /* محتوى حسابي */
+        .account-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .account-content.open {
+            max-height: 500px;
+        }
+        .account-details {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .account-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #444;
+        }
+        .account-row:last-child {
+            border-bottom: none;
+        }
+        .account-label {
+            color: #888;
+            font-weight: 500;
+        }
+        .account-value {
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        .balance-row {
+            background: linear-gradient(135deg, #00b89420, #00cec920);
+            padding: 15px !important;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+        .balance-row .account-value {
+            color: #00b894;
+            font-size: 22px;
+        }
+        .add-item-section {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .add-item-section:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+        }
+        
+        /* قسم إضافة سلعة */
+        .sell-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .sell-section.open {
+            max-height: 400px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="balance-box">
-        <h2 style="margin:0">💰 رصيدك: <span id="balance">0</span> ريال</h2>
-        <small>للشحن تواصل مع الإدارة</small>
+    <!-- زر حسابي -->
+    <div class="account-btn" onclick="toggleAccount()">
+        <div class="account-btn-left">
+            <span class="account-icon">👤</span>
+            <span>حسابي</span>
+        </div>
+        <span class="arrow" id="accountArrow">▼</span>
+    </div>
+    
+    <!-- محتوى حسابي -->
+    <div class="account-content" id="accountContent">
+        <div class="account-details">
+            <div class="account-row">
+                <span class="account-label">الاسم:</span>
+                <span class="account-value" id="userName">جاري التحميل...</span>
+            </div>
+            <div class="account-row">
+                <span class="account-label">معرف تيليجرام:</span>
+                <span class="account-value" id="userId">-</span>
+            </div>
+            <div class="account-row balance-row">
+                <span class="account-label">💰 رصيدك:</span>
+                <span class="account-value"><span id="balance">0</span> ريال</span>
+            </div>
+            
+            <div class="add-item-section" onclick="toggleSellSection()">
+                ➕ أضف سلعة للبيع
+            </div>
+        </div>
+    </div>
+    
+    <!-- قسم إضافة سلعة -->
+    <div class="sell-section" id="sellSection">
+        <div class="card">
+            <h3>➕ بيع سلعة</h3>
+            <input type="text" id="itemInput" placeholder="اسم السلعة">
+            <input type="number" id="priceInput" placeholder="السعر">
+            <button onclick="sellItem()">نشر في السوق</button>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>➕ بيع سلعة</h3>
-        <input type="text" id="itemInput" placeholder="اسم السلعة">
-        <input type="number" id="priceInput" placeholder="السعر">
+    <h3>🛒 السوق</h3>
         <button onclick="sellItem()">نشر في السوق</button>
     </div>
 
@@ -135,14 +270,32 @@ HTML_PAGE = """
         let user = tg.initDataUnsafe.user;
         let userBalance = 0;
 
-        // جلب الرصيد الحقيقي من السيرفر
+        // عرض بيانات المستخدم
         if(user && user.id) {
+            document.getElementById("userName").innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+            document.getElementById("userId").innerText = user.id;
+            
+            // جلب الرصيد الحقيقي من السيرفر
             fetch('/get_balance?user_id=' + user.id)
                 .then(r => r.json())
                 .then(data => {
                     userBalance = data.balance;
                     document.getElementById("balance").innerText = userBalance;
                 });
+        }
+        
+        // دالة لفتح/إغلاق قسم حسابي
+        function toggleAccount() {
+            const content = document.getElementById("accountContent");
+            const arrow = document.getElementById("accountArrow");
+            content.classList.toggle("open");
+            arrow.classList.toggle("open");
+        }
+        
+        // دالة لفتح/إغلاق قسم إضافة سلعة
+        function toggleSellSection() {
+            const section = document.getElementById("sellSection");
+            section.classList.toggle("open");
         }
 
         function sellItem() {
@@ -197,7 +350,25 @@ HTML_PAGE = """
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\nاستخدم /web للدخول.\nاستخدم /my_id لمعرفة الآيدي الخاص بك.")
+    bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\n\n"
+                          "📱 /web - للدخول للسوق\n"
+                          "🔐 /login - لتسجيل الدخول وعرض رصيدك\n"
+                          "🆔 /my_id - لمعرفة الآيدي الخاص بك")
+
+@bot.message_handler(commands=['login'])
+def send_login_link(message):
+    login_url = SITE_URL + "/login"
+    bot.send_message(message.chat.id, 
+                     f"🔐 **لتسجيل الدخول وعرض رصيدك:**\n\n"
+                     f"⚠️ **مهم:** افتح الرابط في متصفح خارجي (Chrome/Safari)\n"
+                     f"❌ لا تفتحه من داخل تيليجرام!\n\n"
+                     f"🔗 الرابط:\n{login_url}\n\n"
+                     f"💡 **طريقة الفتح الصحيحة:**\n"
+                     f"1️⃣ انسخ الرابط\n"
+                     f"2️⃣ افتح متصفح جوالك\n"
+                     f"3️⃣ الصق الرابط واضغط Enter\n"
+                     f"4️⃣ سيظهر زر تسجيل الدخول",
+                     parse_mode="Markdown")
 
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
@@ -260,49 +431,96 @@ def confirm_transaction(call):
 # صفحة تسجيل الدخول
 @app.route('/login')
 def login_page():
-    return """
+    # استخراج اسم البوت من التوكن (أو يمكنك تعيينه يدوياً)
+    bot_username = "tesdtdrbot"  # غير هذا لاسم البوت الخاص بك بدون @
+    
+    return f"""
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تسجيل الدخول</title>
+        <title>تسجيل الدخول - سوق البوت</title>
         <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
         <style>
-            body { 
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ 
                 font-family: 'Tajawal', sans-serif; 
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                margin: 0;
-                padding: 0;
+                min-height: 100vh;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
-            }
-            .login-box {
+                padding: 20px;
+            }}
+            .login-container {{
                 background: white;
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                padding: 50px 40px;
+                border-radius: 25px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                 text-align: center;
-                max-width: 400px;
-            }
-            h2 { color: #667eea; margin-bottom: 10px; }
-            p { color: #666; margin-bottom: 30px; }
+                max-width: 450px;
+                width: 100%;
+            }}
+            .logo {{ font-size: 60px; margin-bottom: 20px; }}
+            h2 {{ color: #667eea; margin-bottom: 15px; font-size: 28px; }}
+            p {{ color: #666; margin-bottom: 35px; line-height: 1.6; }}
+            .telegram-login {{ 
+                display: inline-block;
+                margin: 20px 0;
+            }}
+            .info-box {{
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 15px;
+                margin-top: 30px;
+                text-align: right;
+            }}
+            .info-box h4 {{ color: #667eea; margin-bottom: 10px; }}
+            .info-box ul {{ list-style: none; padding: 0; }}
+            .info-box li {{ padding: 8px 0; color: #555; }}
+            .info-box li:before {{ content: "✓ "; color: #00b894; font-weight: bold; }}
+            .warning {{
+                background: #fff3cd;
+                border: 2px solid #ffc107;
+                padding: 15px;
+                border-radius: 10px;
+                margin-bottom: 25px;
+                color: #856404;
+            }}
+            .warning strong {{ display: block; margin-bottom: 5px; }}
         </style>
     </head>
     <body>
-        <div class="login-box">
-            <h2>مرحباً بك في سوق البوت 🏪</h2>
-            <p>سجل دخولك بحساب تيليجرام للوصول لمحفظتك</p>
+        <div class="login-container">
+            <div class="logo">🏪</div>
+            <h2>مرحباً بك في سوق البوت</h2>
+            <p>سجل دخولك عبر تيليجرام للوصول إلى محفظتك وإدارة مشترياتك</p>
             
-            <script async src="https://telegram.org/js/telegram-widget.js?22" 
-                    data-telegram-login="YOUR_BOT_USERNAME" 
-                    data-size="large" 
-                    data-radius="10" 
-                    data-auth-url="https://bothhhhhhhhhhhhh.onrender.com/login_check"
-                    data-request-access="write">
-            </script>
+            <div class="warning">
+                <strong>⚠️ تنبيه مهم!</strong>
+                إذا لم يظهر الزر أدناه، افتح هذه الصفحة في متصفح خارجي (Chrome/Safari)
+            </div>
+            
+            <div class="telegram-login">
+                <script async src="https://telegram.org/js/telegram-widget.js?22" 
+                        data-telegram-login="{bot_username}" 
+                        data-size="large" 
+                        data-radius="12" 
+                        data-auth-url="{SITE_URL}/login_check"
+                        data-request-access="write">
+                </script>
+            </div>
+            
+            <div class="info-box">
+                <h4>بعد تسجيل الدخول ستتمكن من:</h4>
+                <ul>
+                    <li>عرض رصيدك المالي</li>
+                    <li>شراء المنتجات بأمان</li>
+                    <li>عرض سلعك للبيع</li>
+                    <li>تتبع معاملاتك</li>
+                </ul>
+            </div>
         </div>
     </body>
     </html>
