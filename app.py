@@ -7,9 +7,8 @@ from telebot import types
 from flask import Flask, request, render_template_string
 
 # --- إعدادات البوت ---
-TOKEN = '8082622933:AAHmN2XBgim9NglbtWHU-qvS4_02suqI8sgE' # ضع توكن البوت الخاص بك هنا
-# ضع رابط موقعك الذي حصلت عليه من ريندر (يجب أن يبدأ بـ https)
-SITE_URL = 'https://bothhhhhhhhhhhhh.onrender.com' 
+TOKEN = os.environ.get("TOKEN")
+SITE_URL = os.environ.get("SITE_URL") 
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
