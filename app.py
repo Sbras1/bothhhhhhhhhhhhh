@@ -594,11 +594,47 @@ HTML_PAGE = """
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\n\n"
-                          "🔐 /code - احصل على كود تسجيل الدخول\n"
-                          "🔗 /link - احصل على رابط خاص بك (مؤقت 30 دقيقة)\n"
-                          "📱 /web - للدخول للسوق\n"
-                          "🆔 /my_id - لمعرفة الآيدي الخاص بك")
+    # إنشاء لوحة أزرار تفاعلية
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    # الصف الأول - الأزرار الرئيسية
+    btn_code = types.KeyboardButton("🔐 كود الدخول")
+    btn_link = types.KeyboardButton("🔗 رابط سريع")
+    
+    # الصف الثاني
+    btn_web = types.KeyboardButton("🏪 افتح السوق")
+    btn_myid = types.KeyboardButton("🆔 معرفي")
+    
+    # إضافة الأزرار
+    markup.add(btn_code, btn_link)
+    markup.add(btn_web, btn_myid)
+    
+    # رسالة الترحيب
+    bot.send_message(
+        message.chat.id,
+        "🌟 **أهلاً بك في السوق الآمن!** 🛡️\n\n"
+        "منصة آمنة للبيع والشراء مع نظام حماية الأموال ❄️\n\n"
+        "📌 **اختر من الأزرار أدناه:**",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+
+# معالج الرسائل النصية (الأزرار)
+@bot.message_handler(func=lambda message: message.text in [
+    "🔐 كود الدخول", "🔗 رابط سريع", "🏪 افتح السوق", "🆔 معرفي"
+])
+def handle_buttons(message):
+    if message.text == "🔐 كود الدخول":
+        get_verification_code(message)
+    
+    elif message.text == "🔗 رابط سريع":
+        get_magic_link(message)
+    
+    elif message.text == "🏪 افتح السوق":
+        open_web_app(message)
+    
+    elif message.text == "🆔 معرفي":
+        my_id(message)
 
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
