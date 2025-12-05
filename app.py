@@ -542,14 +542,32 @@ HTML_PAGE = """
         function sellItem() {
             let name = document.getElementById("itemInput").value;
             let price = document.getElementById("priceInput").value;
-            if(!name || !price) return tg.showAlert("أدخل البيانات");
+            
+            if(!name || !price) {
+                alert("الرجاء إدخال اسم السلعة والسعر!");
+                return;
+            }
+
+            // تحديد اسم البائع والآيدي
+            let sellerName = '{{ user_name }}';
+            let sellerId = currentUserId;
+            
+            if(user && user.id) {
+                sellerName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                sellerId = user.id;
+            }
+            
+            if(!sellerId || sellerId == 0) {
+                alert("الرجاء تسجيل الدخول أولاً!");
+                return;
+            }
 
             fetch('/sell', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    seller_name: user.first_name,
-                    seller_id: user.id,
+                    seller_name: sellerName,
+                    seller_id: sellerId,
                     item_name: name,
                     price: price
                 })
