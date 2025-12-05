@@ -581,6 +581,10 @@ HTML_PAGE = """
         
         // دالة لفتح/إغلاق قسم حسابي
         function toggleAccount() {
+            // الحصول على العناصر
+            const content = document.getElementById("accountContent");
+            const arrow = document.getElementById("accountArrow");
+            
             // إذا كان المستخدم في متصفح عادي وغير مسجل دخول
             if(!isTelegramWebApp && (!currentUserId || currentUserId == 0)) {
                 // توجيهه لصفحة تسجيل الدخول المدمجة
@@ -588,9 +592,7 @@ HTML_PAGE = """
                 return;
             }
             
-            // إذا كان مسجل دخول، افتح/أغلق القسم
-            const content = document.getElementById("accountContent");
-            const arrow = document.getElementById("accountArrow");
+            // فتح/إغلاق القسم
             content.classList.toggle("open");
             arrow.classList.toggle("open");
         }
