@@ -228,55 +228,52 @@ HTML_PAGE = """
         }
         
         /* الفئات */
-        .categories-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin: 15px 0;
+        .categories-container {
+            margin-bottom: 16px;
         }
-        .category-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            padding: 20px;
-            text-align: center;
+        .categories-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0;
+            scrollbar-width: none;
+        }
+        .categories-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .category-chip {
+            background: var(--card-bg);
+            border: 2px solid #6c5ce7;
+            border-radius: 20px;
+            padding: 8px 16px;
+            white-space: nowrap;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .category-card:nth-child(2) {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .category-card:nth-child(3) {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        .category-card:nth-child(4) {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-        .category-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
-        .category-card.active {
+        .category-chip:hover {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-color: #a29bfe;
             transform: scale(1.05);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            border: 2px solid white;
         }
-        .category-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
-        .category-title {
+        .category-chip.active {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-color: #a29bfe;
             color: white;
-            font-weight: bold;
-            font-size: 15px;
         }
-        .category-badge {
-            background: rgba(255,255,255,0.3);
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-top: 5px;
-            display: inline-block;
+        .category-chip-icon {
+            font-size: 16px;
+        }
+        .category-chip-count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 4px;
         }
         .filter-header {
             display: flex;
@@ -474,17 +471,6 @@ HTML_PAGE = """
                 <span class="account-value"><span id="balance">0</span> ريال</span>
             </div>
             
-            <!-- الفئات -->
-            <div class="categories-grid">
-                {% for cat in categories %}
-                <div class="category-card" onclick="filterByCategory('{{ cat.id }}', this)" data-category="{{ cat.id }}">
-                    <div class="category-icon">{{ cat.icon }}</div>
-                    <div class="category-title">{{ cat.name }}</div>
-                    <div class="category-badge" id="count-{{ cat.id }}">0 منتج</div>
-                </div>
-                {% endfor %}
-            </div>
-            
             <div class="add-item-section" onclick="toggleSellSection()">
                 ➕ أضف سلعة للبيع
             </div>
@@ -509,6 +495,19 @@ HTML_PAGE = """
         </div>
     </div>
 
+    <!-- الفئات -->
+    <div class="categories-container">
+        <div class="categories-scroll">
+            {% for cat in categories %}
+            <div class="category-chip" onclick="filterByCategory('{{ cat.id }}', this)" data-category="{{ cat.id }}">
+                <span class="category-chip-icon">{{ cat.icon }}</span>
+                <span>{{ cat.name }}</span>
+                <span class="category-chip-count" id="count-{{ cat.id }}">0</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
     <div class="filter-header">
         <h3 style="margin: 0;">🛒 السوق <span id="filterText"></span></h3>
         <button class="clear-filter" id="clearFilterBtn" onclick="clearFilter()" style="display: none;">✕ إلغاء التصفية</button>
@@ -671,7 +670,7 @@ HTML_PAGE = """
         // دالة لتصفية المنتجات حسب الفئة
         function filterByCategory(categoryId, element) {
             const items = document.querySelectorAll('.item-card');
-            const categoryCards = document.querySelectorAll('.category-card');
+            const categoryChips = document.querySelectorAll('.category-chip');
             const filterText = document.getElementById('filterText');
             const clearBtn = document.getElementById('clearFilterBtn');
             
@@ -684,7 +683,7 @@ HTML_PAGE = """
             currentFilter = categoryId;
             
             // إزالة الحالة النشطة من جميع الفئات
-            categoryCards.forEach(card => card.classList.remove('active'));
+            categoryChips.forEach(chip => chip.classList.remove('active'));
             
             // إضافة الحالة النشطة للفئة المختارة
             element.classList.add('active');
@@ -702,8 +701,8 @@ HTML_PAGE = """
             });
             
             // تحديث نص التصفية
-            const categoryName = element.querySelector('.category-title').textContent;
-            filterText.textContent = `(${categoryName} - ${visibleCount} منتج)`;
+            const categoryName = element.textContent.trim().split('\n')[0];
+            filterText.textContent = `(${visibleCount})`;
             clearBtn.style.display = 'block';
         }
         
@@ -711,7 +710,7 @@ HTML_PAGE = """
         function clearFilter() {
             currentFilter = null;
             const items = document.querySelectorAll('.item-card');
-            const categoryCards = document.querySelectorAll('.category-card');
+            const categoryChips = document.querySelectorAll('.category-chip');
             const filterText = document.getElementById('filterText');
             const clearBtn = document.getElementById('clearFilterBtn');
             
@@ -719,7 +718,7 @@ HTML_PAGE = """
             items.forEach(item => item.style.display = 'flex');
             
             // إزالة الحالة النشطة من الفئات
-            categoryCards.forEach(card => card.classList.remove('active'));
+            categoryChips.forEach(chip => chip.classList.remove('active'));
             
             // إخفاء زر إلغاء التصفية
             filterText.textContent = '';
@@ -740,7 +739,7 @@ HTML_PAGE = """
                 });
                 const countElement = document.getElementById('count-' + cat.id);
                 if(countElement) {
-                    countElement.textContent = count + ' منتج';
+                    countElement.textContent = count;
                 }
             });
         }
@@ -762,12 +761,26 @@ HTML_PAGE = """
                 return;
             }
 
+            // تحديد اسم البائع والآيدي
+            let sellerName = '{{ user_name }}';
+            let sellerId = currentUserId;
+            
+            if(user && user.id) {
+                sellerName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                sellerId = user.id;
+            }
+            
+            if(!sellerId || sellerId == 0) {
+                alert("الرجاء تسجيل الدخول أولاً!");
+                return;
+            }
+
             fetch('/sell', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    seller_name: user.first_name || '{{ user_name }}',
-                    seller_id: user.id || currentUserId,
+                    seller_name: sellerName,
+                    seller_id: sellerId,
                     item_name: name,
                     price: price,
                     category: category
