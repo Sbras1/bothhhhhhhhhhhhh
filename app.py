@@ -238,16 +238,16 @@ HTML_PAGE = """
         }
         .category-chip {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 10px 12px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
         .category-chip:nth-child(2) {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -259,27 +259,27 @@ HTML_PAGE = """
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
         .category-chip:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
         }
         .category-chip.active {
-            transform: scale(1.05);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            border: 3px solid white;
+            transform: scale(1.03);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 2px solid white;
         }
         .category-chip-icon {
-            font-size: 28px;
+            font-size: 22px;
         }
         .category-chip-title {
             color: white;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
         }
         .category-chip-count {
             background: rgba(255,255,255,0.3);
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
             color: white;
             font-weight: 600;
         }
