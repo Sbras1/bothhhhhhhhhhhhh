@@ -8,7 +8,6 @@ from flask import Flask, request, render_template_string, redirect, session
 import json
 import random
 import hashlib
-import hmac
 import time
 
 # --- إعدادات البوت ---
@@ -37,6 +36,10 @@ transactions = {}
 # الروابط المؤقتة للمستخدمين
 # الشكل: { token: {user_id, name, created_at} }
 magic_links = {}
+
+# رموز التحقق للمستخدمين
+# الشكل: { user_id: {code, name, created_at} }
+verification_codes = {}
 
 # --- دوال مساعدة ---
 def get_balance(user_id):
@@ -69,38 +72,46 @@ def verify_magic_link(token):
     
     link_data = magic_links[token]
     
-    # التحقق من أن الرابط لم ينتهي (30 دقيقة)
+    # التحقق من أن الرابط لم ينته (30 دقيقة)
     if time.time() - link_data['created_at'] > 1800:  # 30 * 60 ثانية
         del magic_links[token]
         return None
     
     return link_data
 
-# دالة للتحقق من أن البيانات قادمة فعلاً من تيليجرام (أمان)
-def check_telegram_authorization(auth_data):
-    check_hash = auth_data.get('hash')
-    if not check_hash:
-        return False
+# دالة لتوليد كود تحقق عشوائي
+def generate_verification_code(user_id, user_name):
+    # توليد كود من 6 أرقام
+    code = str(random.randint(100000, 999999))
     
-    # حذف الهاش من البيانات قبل الترتيب
-    data_check_string = []
-    for key, value in sorted(auth_data.items()):
-        if key != 'hash':
-            data_check_string.append(f"{key}={value}")
+    # حفظ الكود (صالح لمدة 10 دقائق)
+    verification_codes[str(user_id)] = {
+        'code': code,
+        'name': user_name,
+        'created_at': time.time()
+    }
     
-    data_check_string = '\n'.join(data_check_string)
+    return code
+
+# دالة للتحقق من صحة الكود
+def verify_code(user_id, code):
+    user_id = str(user_id)
     
-    # عملية التشفير السرية باستخدام توكن البوت
-    secret_key = hashlib.sha256(TOKEN.encode()).digest()
-    hash_result = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if user_id not in verification_codes:
+        return None
     
-    # التحقق من تطابق الهاش + التحقق أن الطلب ليس قديماً (صلاحية 24 ساعة)
-    if hash_result != check_hash:
-        return False
-    if time.time() - int(auth_data.get('auth_date', 0)) > 86400:
-        return False
-        
-    return True
+    code_data = verification_codes[user_id]
+    
+    # التحقق من صلاحية الكود (10 دقائق)
+    if time.time() - code_data['created_at'] > 600:  # 10 * 60 ثانية
+        del verification_codes[user_id]
+        return None
+    
+    # التحقق من تطابق الكود
+    if code_data['code'] != code:
+        return None
+    
+    return code_data
 
 # --- كود صفحة الويب (HTML + JavaScript) ---
 HTML_PAGE = """
@@ -278,8 +289,53 @@ HTML_PAGE = """
             margin-bottom: 25px;
             line-height: 1.6;
         }
-        .telegram-login-wrapper {
-            display: inline-block;
+        .login-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .login-input:focus {
+            outline: none;
+            border-color: #6c5ce7;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(108, 92, 231, 0.4);
+        }
+        .help-text {
+            color: #636e72;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+        .help-text a {
+            color: #6c5ce7;
+            text-decoration: none;
+        }
+        .error-message {
+            color: #e74c3c;
+            background: #ffe5e5;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
         }
     </style>
 </head>
@@ -290,16 +346,18 @@ HTML_PAGE = """
             <span class="close-modal" onclick="closeLoginModal()">✕</span>
             <div class="modal-logo">🏪</div>
             <h2 class="modal-title">تسجيل الدخول</h2>
-            <p class="modal-text">سجل دخولك عبر تيليجرام للوصول إلى حسابك ومحفظتك</p>
-            <div class="telegram-login-wrapper">
-                <script async src="https://telegram.org/js/telegram-widget.js?22" 
-                        data-telegram-login="tesdtdrbot" 
-                        data-size="large" 
-                        data-radius="12" 
-                        data-auth-url="{SITE_URL}/login_check"
-                        data-request-access="write">
-                </script>
-            </div>
+            <p class="modal-text">أدخل معرف تيليجرام الخاص بك والكود الذي ستحصل عليه من البوت</p>
+            
+            <div id="errorMessage" class="error-message"></div>
+            
+            <input type="text" id="telegramId" class="login-input" placeholder="معرف تيليجرام (Telegram ID)">
+            <input type="text" id="verificationCode" class="login-input" placeholder="كود التحقق (من البوت)" maxlength="6">
+            
+            <button class="login-btn" onclick="submitLogin()">تسجيل الدخول</button>
+            
+            <p class="help-text">
+                ليس لديك كود؟ <a href="#" onclick="showCodeHelp(); return false;">احصل على كود من البوت</a>
+            </p>
         </div>
     </div>
 
@@ -429,6 +487,53 @@ HTML_PAGE = """
         function closeLoginModal() {
             const modal = document.getElementById('loginModal');
             modal.style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('telegramId').value = '';
+            document.getElementById('verificationCode').value = '';
+        }
+        
+        // دالة لإرسال بيانات تسجيل الدخول
+        async function submitLogin() {
+            const userId = document.getElementById('telegramId').value.trim();
+            const code = document.getElementById('verificationCode').value.trim();
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // التحقق من إدخال البيانات
+            if(!userId || !code) {
+                errorDiv.textContent = 'الرجاء إدخال الآيدي والكود';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: userId,
+                        code: code
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if(data.success) {
+                    // نجح تسجيل الدخول
+                    closeLoginModal();
+                    location.reload(); // إعادة تحميل الصفحة لعرض البيانات
+                } else {
+                    errorDiv.textContent = data.message;
+                    errorDiv.style.display = 'block';
+                }
+            } catch(error) {
+                errorDiv.textContent = 'حدث خطأ! حاول مرة أخرى';
+                errorDiv.style.display = 'block';
+            }
+        }
+        
+        // دالة لعرض مساعدة الحصول على الكود
+        function showCodeHelp() {
+            alert('للحصول على كود التحقق:\\n\\n1️⃣ افتح البوت في تيليجرام\\n2️⃣ أرسل الأمر /code\\n3️⃣ انسخ الكود المكون من 6 أرقام\\n4️⃣ الصقه في الحقل أعلاه');
         }
         
         // دالة لفتح/إغلاق قسم إضافة سلعة
@@ -490,6 +595,7 @@ HTML_PAGE = """
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(message, "أهلاً بك في السوق الآمن! 🛡️\n\n"
+                          "🔐 /code - احصل على كود تسجيل الدخول\n"
                           "🔗 /link - احصل على رابط خاص بك (مؤقت 30 دقيقة)\n"
                           "📱 /web - للدخول للسوق\n"
                           "🆔 /my_id - لمعرفة الآيدي الخاص بك")
@@ -517,6 +623,28 @@ def get_magic_link(message):
                      f"• إمكانية البيع والشراء\n"
                      f"• إدارة حسابك\n\n"
                      f"💡 انسخ الرابط وافتحه في متصفح خارجي (Chrome/Safari)",
+                     parse_mode="Markdown")
+
+@bot.message_handler(commands=['code'])
+def get_verification_code(message):
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+    if message.from_user.last_name:
+        user_name += ' ' + message.from_user.last_name
+    
+    # توليد كود تحقق
+    code = generate_verification_code(user_id, user_name)
+    
+    bot.send_message(message.chat.id,
+                     f"🔐 **كود التحقق الخاص بك:**\n\n"
+                     f"`{code}`\n\n"
+                     f"⏱️ **صالح لمدة 10 دقائق**\n\n"
+                     f"💡 **خطوات الدخول:**\n"
+                     f"1️⃣ افتح الموقع في المتصفح\n"
+                     f"2️⃣ اضغط على زر 'حسابي'\n"
+                     f"3️⃣ أدخل الآيدي الخاص بك: `{user_id}`\n"
+                     f"4️⃣ أدخل الكود أعلاه\n\n"
+                     f"⚠️ لا تشارك هذا الكود مع أحد!",
                      parse_mode="Markdown")
 
 # أمر خاص بالآدمن لشحن رصيد المستخدمين
@@ -644,63 +772,38 @@ def magic_link_login(token):
     # توجيه للصفحة الرئيسية
     return redirect('/')
 
-# مسار استقبال بيانات الدخول من Telegram Widget
-@app.route('/login_check')
-def login_check():
-    auth_data = request.args.to_dict()
+# مسار التحقق من الكود وتسجيل الدخول
+@app.route('/verify', methods=['POST'])
+def verify_login():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    code = data.get('code')
     
-    if check_telegram_authorization(auth_data):
-        # تم التحقق بنجاح!
-        user_id = auth_data['id']
-        first_name = auth_data['first_name']
-        photo_url = auth_data.get('photo_url', '') # الصورة الشخصية
-        
-        # تخزين الجلسة
-        session['user_id'] = user_id
-        session['first_name'] = first_name
-        
-        # جلب الرصيد
-        balance = users_wallets.get(str(user_id), 0)
-        
-        return f"""
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <title>تم تسجيل الدخول</title>
-            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-            <style>
-                body {{ font-family: 'Tajawal', sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }}
-                .success-box {{ background: white; padding: 40px; border-radius: 20px; max-width: 500px; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }}
-                img {{ border-radius: 50%; margin: 20px 0; border: 4px solid #667eea; }}
-                h1 {{ color: #00b894; }}
-                .balance {{ background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin: 20px 0; }}
-                a {{ display: inline-block; background: #667eea; color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; margin-top: 20px; }}
-                a:hover {{ background: #764ba2; }}
-            </style>
-        </head>
-        <body>
-            <div class="success-box">
-                <h1>أهلاً بك يا {first_name}! ✅</h1>
-                {f'<img src="{photo_url}" width="100">' if photo_url else ''}
-                <h3>الآيدي الخاص بك: {user_id}</h3>
-                <div class="balance">
-                    💰 رصيدك الحالي: {balance} ريال
-                </div>
-                <p>تم تسجيل دخولك بنجاح وربط حسابك.</p>
-                <a href="/">الذهاب للسوق 🏪</a>
-            </div>
-        </body>
-        </html>
-        """
-    else:
-        return """
-        <center style="padding: 50px; font-family: Arial;">
-            <h1>❌ فشل التحقق من البيانات!</h1>
-            <p>البيانات غير صحيحة أو منتهية الصلاحية</p>
-            <a href="/login">حاول مرة أخرى</a>
-        </center>
-        """
+    if not user_id or not code:
+        return {'success': False, 'message': 'الرجاء إدخال الآيدي والكود'}
+    
+    # التحقق من صحة الكود
+    code_data = verify_code(user_id, code)
+    
+    if not code_data:
+        return {'success': False, 'message': 'الكود غير صحيح أو منتهي الصلاحية'}
+    
+    # تسجيل دخول المستخدم
+    session['user_id'] = user_id
+    session['user_name'] = code_data['name']
+    
+    # حذف الكود بعد الاستخدام
+    del verification_codes[str(user_id)]
+    
+    # جلب الرصيد
+    balance = get_balance(user_id)
+    
+    return {
+        'success': True,
+        'message': 'تم تسجيل الدخول بنجاح',
+        'user_name': code_data['name'],
+        'balance': balance
+    }
 
 @app.route('/')
 def index():
