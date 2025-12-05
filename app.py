@@ -24,16 +24,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-here-change-it")
 # ملاحظة: هذه البيانات ستمسح عند إعادة تشغيل السيرفر.
 
 # قائمة المنتجات
-# الشكل: { item_name, price, seller_id, seller_name, category }
 marketplace_items = []
-
-# الفئات المتاحة
-categories = [
-    {"id": "id_uc", "name": "شدات ايدي", "icon": "🎮"},
-    {"id": "login", "name": "تسجيل دخول", "icon": "🔐"},
-    {"id": "kr_uc", "name": "شدات كورية", "icon": "🇰🇷"},
-    {"id": "subscriptions", "name": "اشتراكات", "icon": "⭐"}
-]
 
 # بيانات المستخدمين (الرصيد)
 # الشكل: { user_id: balance }
@@ -158,7 +149,7 @@ HTML_PAGE = """
             transition: max-height 0.3s ease;
         }
         .account-content.open {
-            max-height: 600px;
+            max-height: 500px;
         }
         .account-details {
             background: var(--card-bg);
@@ -227,87 +218,6 @@ HTML_PAGE = """
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
-        /* الفئات */
-        .categories-container {
-            margin-bottom: 16px;
-        }
-        .categories-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        .category-chip {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            padding: 10px 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        .category-chip:nth-child(2) {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .category-chip:nth-child(3) {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        .category-chip:nth-child(4) {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-        .category-chip:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-        }
-        .category-chip.active {
-            transform: scale(1.03);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-            border: 2px solid white;
-        }
-        .category-chip-icon {
-            font-size: 22px;
-        }
-        .category-chip-title {
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        .category-chip-count {
-            background: rgba(255,255,255,0.3);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            color: white;
-            font-weight: 600;
-        }
-        .filter-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .clear-filter {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: 'Tajawal', sans-serif;
-        }
-        .item-category-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 11px;
-            margin-top: 5px;
-            font-weight: bold;
-        }
-        
         /* قسم إضافة سلعة */
         .sell-section {
             max-height: 0;
@@ -315,23 +225,7 @@ HTML_PAGE = """
             transition: max-height 0.3s ease;
         }
         .sell-section.open {
-            max-height: 500px;
-        }
-        .category-select {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 12px;
-            background: var(--card-bg);
-            border: 2px solid #6c5ce7;
-            border-radius: 12px;
-            color: var(--text-color);
-            font-family: 'Tajawal', sans-serif;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .category-select:focus {
-            outline: none;
-            border-color: #a29bfe;
+            max-height: 400px;
         }
         
         /* نافذة تسجيل الدخول المنبثقة */
@@ -433,6 +327,27 @@ HTML_PAGE = """
     </style>
 </head>
 <body>
+    <!-- نافذة تسجيل الدخول المنبثقة -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-modal-content">
+            <span class="close-modal" onclick="closeLoginModal()">✕</span>
+            <div class="modal-logo">🏪</div>
+            <h2 class="modal-title">تسجيل الدخول</h2>
+            <p class="modal-text">أدخل معرف تيليجرام الخاص بك والكود الذي ستحصل عليه من البوت</p>
+            
+            <div id="errorMessage" class="error-message"></div>
+            
+            <input type="text" id="telegramId" class="login-input" placeholder="معرف تيليجرام (Telegram ID)">
+            <input type="text" id="verificationCode" class="login-input" placeholder="كود التحقق (من البوت)" maxlength="6">
+            
+            <button class="login-btn" onclick="submitLogin()">تسجيل الدخول</button>
+            
+            <p class="help-text">
+                ليس لديك كود؟ <a href="#" onclick="showCodeHelp(); return false;">احصل على كود من البوت</a>
+            </p>
+        </div>
+    </div>
+
     <!-- زر حسابي -->
     <div class="account-btn" onclick="toggleAccount()" id="accountBtn">
         <div class="account-btn-left">
@@ -470,68 +385,24 @@ HTML_PAGE = """
     <div class="sell-section" id="sellSection">
         <div class="card">
             <h3>➕ بيع سلعة</h3>
-            <select id="categorySelect" class="category-select">
-                <option value="">📂 اختر الفئة</option>
-                {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
-                {% endfor %}
-            </select>
             <input type="text" id="itemInput" placeholder="اسم السلعة">
             <input type="number" id="priceInput" placeholder="السعر">
             <button onclick="sellItem()">نشر في السوق</button>
         </div>
     </div>
-    
-    <!-- نافذة تسجيل الدخول المنبثقة -->
-    <div class="login-modal" id="loginModal">
-        <div class="login-modal-content">
-            <span class="close-modal" onclick="closeLoginModal()">✕</span>
-            <div class="modal-logo">🏪</div>
-            <h2 class="modal-title">تسجيل الدخول</h2>
-            <p class="modal-text">أدخل معرف تيليجرام الخاص بك والكود الذي ستحصل عليه من البوت</p>
-            
-            <div id="errorMessage" class="error-message"></div>
-            
-            <input type="text" id="telegramId" class="login-input" placeholder="معرف تيليجرام (Telegram ID)">
-            <input type="text" id="verificationCode" class="login-input" placeholder="كود التحقق (من البوت)" maxlength="6">
-            
-            <button class="login-btn" onclick="submitLogin()">تسجيل الدخول</button>
-            
-            <p class="help-text">
-                ليس لديك كود؟ <a href="#" onclick="showCodeHelp(); return false;">احصل على كود من البوت</a>
-            </p>
-        </div>
+
+    <h3>🛒 السوق</h3>
+        <button onclick="sellItem()">نشر في السوق</button>
     </div>
 
-    <!-- الفئات -->
-    <div class="categories-container">
-        <div class="categories-grid">
-            {% for cat in categories %}
-            <div class="category-chip" onclick="filterByCategory('{{ cat.id }}', this)" data-category="{{ cat.id }}">
-                <span class="category-chip-icon">{{ cat.icon }}</span>
-                <span class="category-chip-title">{{ cat.name }}</span>
-                <span class="category-chip-count" id="count-{{ cat.id }}">0 منتج</span>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    
-    <div class="filter-header">
-        <h3 style="margin: 0;">🛒 السوق <span id="filterText"></span></h3>
-        <button class="clear-filter" id="clearFilterBtn" onclick="clearFilter()" style="display: none;">✕ إلغاء التصفية</button>
-    </div>
+    <h3>🛒 السوق</h3>
     <div id="market" class="card">
         {% for item in items %}
-        <div class="item-card" data-category="{{ item.category }}">
+        <div class="item-card">
             <div>
                 <b style="font-size:1.1rem">{{ item.item_name }}</b><br>
                 <small style="color:gray">بائع: {{ item.seller_name }}</small>
-                {% for cat in categories %}
-                    {% if cat.id == item.category %}
-                        <span class="item-category-badge" style="background: linear-gradient(135deg, rgba(102,126,234,0.8), rgba(118,75,162,0.8)); color: white;">{{ cat.icon }} {{ cat.name }}</span>
-                    {% endif %}
-                {% endfor %}
-                <div style="color: #a29bfe; font-weight:bold; margin-top: 5px;">{{ item.price }} ريال</div>
+                <div style="color: #a29bfe; font-weight:bold">{{ item.price }} ريال</div>
             </div>
             {% if item.seller_id|string != current_user_id|string %}
                 <button class="buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}')">شراء ❄️</button>
@@ -581,21 +452,6 @@ HTML_PAGE = """
         
         // دالة لفتح/إغلاق قسم حسابي
         function toggleAccount() {
-            console.log("toggleAccount called"); // للتتبع
-            
-            // الحصول على العناصر
-            const content = document.getElementById("accountContent");
-            const arrow = document.getElementById("accountArrow");
-            
-            console.log("Content:", content); // للتتبع
-            console.log("Arrow:", arrow); // للتتبع
-            
-            // التحقق من وجود العناصر
-            if(!content || !arrow) {
-                console.error("Elements not found!");
-                return;
-            }
-            
             // إذا كان المستخدم في متصفح عادي وغير مسجل دخول
             if(!isTelegramWebApp && (!currentUserId || currentUserId == 0)) {
                 // توجيهه لصفحة تسجيل الدخول المدمجة
@@ -603,11 +459,11 @@ HTML_PAGE = """
                 return;
             }
             
-            // فتح/إغلاق القسم
+            // إذا كان مسجل دخول، افتح/أغلق القسم
+            const content = document.getElementById("accountContent");
+            const arrow = document.getElementById("accountArrow");
             content.classList.toggle("open");
             arrow.classList.toggle("open");
-            
-            console.log("Toggle completed"); // للتتبع
         }
         
         // دالة لعرض نافذة تسجيل الدخول
@@ -686,127 +542,20 @@ HTML_PAGE = """
             const section = document.getElementById("sellSection");
             section.classList.toggle("open");
         }
-        
-        // متغير لحفظ الفئة المفلترة حالياً
-        let currentFilter = null;
-        
-        // دالة لتصفية المنتجات حسب الفئة
-        function filterByCategory(categoryId, element) {
-            const items = document.querySelectorAll('.item-card');
-            const categoryChips = document.querySelectorAll('.category-chip');
-            const filterText = document.getElementById('filterText');
-            const clearBtn = document.getElementById('clearFilterBtn');
-            
-            // إذا تم الضغط على نفس الفئة، قم بإلغاء التصفية
-            if(currentFilter === categoryId) {
-                clearFilter();
-                return;
-            }
-            
-            currentFilter = categoryId;
-            
-            // إزالة الحالة النشطة من جميع الفئات
-            categoryChips.forEach(chip => chip.classList.remove('active'));
-            
-            // إضافة الحالة النشطة للفئة المختارة
-            element.classList.add('active');
-            
-            // تصفية المنتجات
-            let visibleCount = 0;
-            items.forEach(item => {
-                const itemCategory = item.getAttribute('data-category');
-                if(itemCategory === categoryId) {
-                    item.style.display = 'flex';
-                    visibleCount++;
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-            
-            // تحديث نص التصفية
-            const categoryName = element.textContent.trim().split('\n')[0];
-            filterText.textContent = `(${visibleCount})`;
-            clearBtn.style.display = 'block';
-        }
-        
-        // دالة لإلغاء التصفية
-        function clearFilter() {
-            currentFilter = null;
-            const items = document.querySelectorAll('.item-card');
-            const categoryChips = document.querySelectorAll('.category-chip');
-            const filterText = document.getElementById('filterText');
-            const clearBtn = document.getElementById('clearFilterBtn');
-            
-            // إظهار جميع المنتجات
-            items.forEach(item => item.style.display = 'flex');
-            
-            // إزالة الحالة النشطة من الفئات
-            categoryChips.forEach(chip => chip.classList.remove('active'));
-            
-            // إخفاء زر إلغاء التصفية
-            filterText.textContent = '';
-            clearBtn.style.display = 'none';
-        }
-        
-        // دالة لحساب عدد المنتجات في كل فئة
-        function updateCategoryCounts() {
-            const categories = {{ categories|tojson }};
-            const items = document.querySelectorAll('.item-card');
-            
-            categories.forEach(cat => {
-                let count = 0;
-                items.forEach(item => {
-                    if(item.getAttribute('data-category') === cat.id) {
-                        count++;
-                    }
-                });
-                const countElement = document.getElementById('count-' + cat.id);
-                if(countElement) {
-                    countElement.textContent = count + ' منتج';
-                }
-            });
-        }
-        
-        // تحديث العدادات عند تحميل الصفحة
-        window.addEventListener('load', updateCategoryCounts);
 
         function sellItem() {
-            let category = document.getElementById("categorySelect").value;
             let name = document.getElementById("itemInput").value;
             let price = document.getElementById("priceInput").value;
-            
-            if(!category) {
-                alert("الرجاء اختيار الفئة!");
-                return;
-            }
-            if(!name || !price) {
-                alert("أدخل اسم السلعة والسعر!");
-                return;
-            }
-
-            // تحديد اسم البائع والآيدي
-            let sellerName = '{{ user_name }}';
-            let sellerId = currentUserId;
-            
-            if(user && user.id) {
-                sellerName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                sellerId = user.id;
-            }
-            
-            if(!sellerId || sellerId == 0) {
-                alert("الرجاء تسجيل الدخول أولاً!");
-                return;
-            }
+            if(!name || !price) return tg.showAlert("أدخل البيانات");
 
             fetch('/sell', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    seller_name: sellerName,
-                    seller_id: sellerId,
+                    seller_name: user.first_name,
+                    seller_id: user.id,
                     item_name: name,
-                    price: price,
-                    category: category
+                    price: price
                 })
             }).then(() => location.reload());
         }
@@ -1019,8 +768,7 @@ def index():
                                    items=marketplace_items, 
                                    balance=balance, 
                                    current_user_id=user_id or 0,
-                                   user_name=user_name,
-                                   categories=categories)
+                                   user_name=user_name)
 
 @app.route('/get_balance')
 def get_balance_api():
