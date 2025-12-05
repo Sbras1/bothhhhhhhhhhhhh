@@ -33,10 +33,6 @@ users_wallets = {}
 # العمليات المعلقة (المبالغ المحجوزة)
 transactions = {}
 
-# الروابط المؤقتة للمستخدمين
-# الشكل: { token: {user_id, name, created_at} }
-magic_links = {}
-
 # رموز التحقق للمستخدمين
 # الشكل: { user_id: {code, name, created_at} }
 verification_codes = {}
@@ -50,34 +46,6 @@ def add_balance(user_id, amount):
     if uid not in users_wallets:
         users_wallets[uid] = 0.0
     users_wallets[uid] += float(amount)
-
-# دالة لتوليد رابط مؤقت
-def generate_magic_link(user_id, user_name):
-    # توليد توكن عشوائي آمن
-    token = hashlib.sha256(f"{user_id}{user_name}{time.time()}{random.random()}".encode()).hexdigest()[:32]
-    
-    # حفظ بيانات الرابط (صالح لمدة 30 دقيقة)
-    magic_links[token] = {
-        'user_id': str(user_id),
-        'name': user_name,
-        'created_at': time.time()
-    }
-    
-    return f"{SITE_URL}/m/{token}"
-
-# دالة للتحقق من صلاحية الرابط المؤقت
-def verify_magic_link(token):
-    if token not in magic_links:
-        return None
-    
-    link_data = magic_links[token]
-    
-    # التحقق من أن الرابط لم ينته (30 دقيقة)
-    if time.time() - link_data['created_at'] > 1800:  # 30 * 60 ثانية
-        del magic_links[token]
-        return None
-    
-    return link_data
 
 # دالة لتوليد كود تحقق عشوائي
 def generate_verification_code(user_id, user_name):
@@ -229,6 +197,25 @@ HTML_PAGE = """
         .add-item-section:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+        }
+        
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: 'Tajawal', sans-serif;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
         /* قسم إضافة سلعة */
@@ -389,6 +376,8 @@ HTML_PAGE = """
             <div class="add-item-section" onclick="toggleSellSection()">
                 ➕ أضف سلعة للبيع
             </div>
+            
+            <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
         </div>
     </div>
     
@@ -536,6 +525,18 @@ HTML_PAGE = """
             alert('للحصول على كود التحقق:\\n\\n1️⃣ افتح البوت في تيليجرام\\n2️⃣ أرسل الأمر /code\\n3️⃣ انسخ الكود المكون من 6 أرقام\\n4️⃣ الصقه في الحقل أعلاه');
         }
         
+        // دالة لتسجيل الخروج
+        async function logout() {
+            if(confirm('هل تريد تسجيل الخروج؟')) {
+                try {
+                    await fetch('/logout', {method: 'POST'});
+                    location.reload();
+                } catch(error) {
+                    location.reload();
+                }
+            }
+        }
+        
         // دالة لفتح/إغلاق قسم إضافة سلعة
         function toggleSellSection() {
             const section = document.getElementById("sellSection");
@@ -597,17 +598,14 @@ def send_welcome(message):
     # إنشاء لوحة أزرار تفاعلية
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    # الصف الأول - الأزرار الرئيسية
+    # الأزرار
     btn_code = types.KeyboardButton("🔐 كود الدخول")
-    btn_link = types.KeyboardButton("🔗 رابط سريع")
-    
-    # الصف الثاني
     btn_web = types.KeyboardButton("🏪 افتح السوق")
     btn_myid = types.KeyboardButton("🆔 معرفي")
     
     # إضافة الأزرار
-    markup.add(btn_code, btn_link)
-    markup.add(btn_web, btn_myid)
+    markup.add(btn_code, btn_web)
+    markup.add(btn_myid)
     
     # رسالة الترحيب
     bot.send_message(
@@ -621,14 +619,11 @@ def send_welcome(message):
 
 # معالج الرسائل النصية (الأزرار)
 @bot.message_handler(func=lambda message: message.text in [
-    "🔐 كود الدخول", "🔗 رابط سريع", "🏪 افتح السوق", "🆔 معرفي"
+    "🔐 كود الدخول", "🏪 افتح السوق", "🆔 معرفي"
 ])
 def handle_buttons(message):
     if message.text == "🔐 كود الدخول":
         get_verification_code(message)
-    
-    elif message.text == "🔗 رابط سريع":
-        get_magic_link(message)
     
     elif message.text == "🏪 افتح السوق":
         open_web_app(message)
@@ -639,27 +634,6 @@ def handle_buttons(message):
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
     bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['link'])
-def get_magic_link(message):
-    user_id = message.from_user.id
-    user_name = message.from_user.first_name
-    if message.from_user.last_name:
-        user_name += ' ' + message.from_user.last_name
-    
-    # توليد رابط مؤقت
-    magic_link = generate_magic_link(user_id, user_name)
-    
-    bot.send_message(message.chat.id,
-                     f"🔗 **رابطك الخاص للسوق:**\n\n"
-                     f"`{magic_link}`\n\n"
-                     f"⏱️ **صالح لمدة 30 دقيقة**\n\n"
-                     f"✨ افتحه في المتصفح وسيتم تسجيل دخولك تلقائياً مع:\n"
-                     f"• عرض رصيدك\n"
-                     f"• إمكانية البيع والشراء\n"
-                     f"• إدارة حسابك\n\n"
-                     f"💡 انسخ الرابط وافتحه في متصفح خارجي (Chrome/Safari)",
-                     parse_mode="Markdown")
 
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
@@ -740,73 +714,11 @@ def confirm_transaction(call):
 
 # --- مسارات الموقع (Flask) ---
 
-# مسار الرابط المؤقت (Magic Link)
-@app.route('/m/<token>')
-def magic_link_login(token):
-    # التحقق من صلاحية الرابط
-    link_data = verify_magic_link(token)
-    
-    if not link_data:
-        return """
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>رابط منتهي</title>
-            <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-            <style>
-                body {
-                    font-family: 'Tajawal', sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 20px;
-                }
-                .container {
-                    background: white;
-                    padding: 50px;
-                    border-radius: 20px;
-                    text-align: center;
-                    max-width: 400px;
-                }
-                .icon { font-size: 80px; margin-bottom: 20px; }
-                h2 { color: #e74c3c; margin-bottom: 15px; }
-                p { color: #666; line-height: 1.6; margin-bottom: 25px; }
-                a {
-                    display: inline-block;
-                    padding: 15px 30px;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 10px;
-                    font-weight: bold;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="icon">⏱️</div>
-                <h2>الرابط منتهي الصلاحية</h2>
-                <p>هذا الرابط إما انتهت صلاحيته (30 دقيقة) أو تم استخدامه بالفعل.</p>
-                <p>احصل على رابط جديد من البوت باستخدام الأمر <code>/link</code></p>
-                <a href="/">العودة للصفحة الرئيسية</a>
-            </div>
-        </body>
-        </html>
-        """
-    
-    # تسجيل دخول المستخدم تلقائياً
-    session['user_id'] = link_data['user_id']
-    session['user_name'] = link_data['name']
-    
-    # حذف الرابط بعد الاستخدام (استخدام واحد فقط)
-    del magic_links[token]
-    
-    # توجيه للصفحة الرئيسية
-    return redirect('/')
+# مسار تسجيل الخروج
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return {'success': True}
 
 # مسار التحقق من الكود وتسجيل الدخول
 @app.route('/verify', methods=['POST'])
