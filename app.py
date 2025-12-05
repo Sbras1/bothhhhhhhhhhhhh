@@ -158,7 +158,7 @@ HTML_PAGE = """
             transition: max-height 0.3s ease;
         }
         .account-content.open {
-            max-height: 500px;
+            max-height: 600px;
         }
         .account-details {
             background: var(--card-bg);
@@ -231,49 +231,57 @@ HTML_PAGE = """
         .categories-container {
             margin-bottom: 16px;
         }
-        .categories-scroll {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 10px 0;
-            scrollbar-width: none;
-        }
-        .categories-scroll::-webkit-scrollbar {
-            display: none;
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
         }
         .category-chip {
-            background: var(--card-bg);
-            border: 2px solid #6c5ce7;
-            border-radius: 20px;
-            padding: 8px 16px;
-            white-space: nowrap;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 13px;
-            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+        }
+        .category-chip:nth-child(2) {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .category-chip:nth-child(3) {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .category-chip:nth-child(4) {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
         .category-chip:hover {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-color: #a29bfe;
-            transform: scale(1.05);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         .category-chip.active {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-color: #a29bfe;
-            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 3px solid white;
         }
         .category-chip-icon {
-            font-size: 16px;
+            font-size: 28px;
+        }
+        .category-chip-title {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
         }
         .category-chip-count {
-            background: rgba(255,255,255,0.2);
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 4px;
+            background: rgba(255,255,255,0.3);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: white;
+            font-weight: 600;
         }
         .filter-header {
             display: flex;
@@ -497,12 +505,12 @@ HTML_PAGE = """
 
     <!-- الفئات -->
     <div class="categories-container">
-        <div class="categories-scroll">
+        <div class="categories-grid">
             {% for cat in categories %}
             <div class="category-chip" onclick="filterByCategory('{{ cat.id }}', this)" data-category="{{ cat.id }}">
                 <span class="category-chip-icon">{{ cat.icon }}</span>
-                <span>{{ cat.name }}</span>
-                <span class="category-chip-count" id="count-{{ cat.id }}">0</span>
+                <span class="category-chip-title">{{ cat.name }}</span>
+                <span class="category-chip-count" id="count-{{ cat.id }}">0 منتج</span>
             </div>
             {% endfor %}
         </div>
@@ -739,7 +747,7 @@ HTML_PAGE = """
                 });
                 const countElement = document.getElementById('count-' + cat.id);
                 if(countElement) {
-                    countElement.textContent = count;
+                    countElement.textContent = count + ' منتج';
                 }
             });
         }
