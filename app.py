@@ -433,27 +433,6 @@ HTML_PAGE = """
     </style>
 </head>
 <body>
-    <!-- نافذة تسجيل الدخول المنبثقة -->
-    <div class="login-modal" id="loginModal">
-        <div class="login-modal-content">
-            <span class="close-modal" onclick="closeLoginModal()">✕</span>
-            <div class="modal-logo">🏪</div>
-            <h2 class="modal-title">تسجيل الدخول</h2>
-            <p class="modal-text">أدخل معرف تيليجرام الخاص بك والكود الذي ستحصل عليه من البوت</p>
-            
-            <div id="errorMessage" class="error-message"></div>
-            
-            <input type="text" id="telegramId" class="login-input" placeholder="معرف تيليجرام (Telegram ID)">
-            <input type="text" id="verificationCode" class="login-input" placeholder="كود التحقق (من البوت)" maxlength="6">
-            
-            <button class="login-btn" onclick="submitLogin()">تسجيل الدخول</button>
-            
-            <p class="help-text">
-                ليس لديك كود؟ <a href="#" onclick="showCodeHelp(); return false;">احصل على كود من البوت</a>
-            </p>
-        </div>
-    </div>
-
     <!-- زر حسابي -->
     <div class="account-btn" onclick="toggleAccount()" id="accountBtn">
         <div class="account-btn-left">
@@ -500,6 +479,27 @@ HTML_PAGE = """
             <input type="text" id="itemInput" placeholder="اسم السلعة">
             <input type="number" id="priceInput" placeholder="السعر">
             <button onclick="sellItem()">نشر في السوق</button>
+        </div>
+    </div>
+    
+    <!-- نافذة تسجيل الدخول المنبثقة -->
+    <div class="login-modal" id="loginModal">
+        <div class="login-modal-content">
+            <span class="close-modal" onclick="closeLoginModal()">✕</span>
+            <div class="modal-logo">🏪</div>
+            <h2 class="modal-title">تسجيل الدخول</h2>
+            <p class="modal-text">أدخل معرف تيليجرام الخاص بك والكود الذي ستحصل عليه من البوت</p>
+            
+            <div id="errorMessage" class="error-message"></div>
+            
+            <input type="text" id="telegramId" class="login-input" placeholder="معرف تيليجرام (Telegram ID)">
+            <input type="text" id="verificationCode" class="login-input" placeholder="كود التحقق (من البوت)" maxlength="6">
+            
+            <button class="login-btn" onclick="submitLogin()">تسجيل الدخول</button>
+            
+            <p class="help-text">
+                ليس لديك كود؟ <a href="#" onclick="showCodeHelp(); return false;">احصل على كود من البوت</a>
+            </p>
         </div>
     </div>
 
