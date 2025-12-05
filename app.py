@@ -392,10 +392,6 @@ HTML_PAGE = """
     </div>
 
     <h3>🛒 السوق</h3>
-        <button onclick="sellItem()">نشر في السوق</button>
-    </div>
-
-    <h3>🛒 السوق</h3>
     <div id="market" class="card">
         {% for item in items %}
         <div class="item-card">
