@@ -919,6 +919,11 @@ def set_webhook():
     bot.set_webhook(url=webhook_url)
     return f"Webhook set to {webhook_url}", 200
 
+# Health check endpoint for Render
+@app.route('/health')
+def health():
+    return {'status': 'ok'}, 200
+
 if __name__ == "__main__":
     # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
     port = int(os.environ.get("PORT", 10000))
