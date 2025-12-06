@@ -16,6 +16,13 @@ ADMIN_ID = 5665438577
 TOKEN = os.environ.get("BOT_TOKEN", "default_token")
 SITE_URL = os.environ.get("SITE_URL", "https://example.com")
 
+# معرف مجموعة المشرفين (Group ID)
+# لمعرفة الآيدي: أضف البوت للمجموعة وأرسل /group_id
+ADMINS_GROUP_ID = os.environ.get("ADMINS_GROUP_ID", "-1001234567890")  # غير هذا
+
+# قائمة المشرفين المصرح لهم (يمكن إضافة أكثر من مشرف)
+AUTHORIZED_ADMINS = [5665438577]  # أضف آيديات المشرفين هنا
+
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-here-change-it")
@@ -24,8 +31,12 @@ app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-here-change-it")
 # ملاحظة: هذه البيانات ستمسح عند إعادة تشغيل السيرفر.
 
 # قائمة المنتجات/الخدمات
-# الشكل: { item_name, price, seller_id, seller_name }
+# الشكل: { item_name, price, seller_id, seller_name, hidden_data }
 marketplace_items = []
+
+# الطلبات النشطة (قيد التنفيذ بواسطة المشرفين)
+# الشكل: { order_id: {buyer_info, item_info, admin_id, status, message_id} }
+active_orders = {}
 
 # بيانات المستخدمين (الرصيد)
 # الشكل: { user_id: balance }
@@ -388,6 +399,7 @@ HTML_PAGE = """
             <h3>➕ بيع سلعة</h3>
             <input type="text" id="itemInput" placeholder="اسم السلعة">
             <input type="number" id="priceInput" placeholder="السعر">
+            <textarea id="hiddenDataInput" placeholder="البيانات المخفية (اختياري)\nمثال: Email: admin@gmail.com | Pass: 123456\nهذه البيانات لن تظهر للعملاء وستكون محمية 🔒" style="width: 100%; padding: 14px; margin-bottom: 12px; background: var(--bg-color); border: 1px solid #444; border-radius: 12px; color: var(--text-color); box-sizing: border-box; min-height: 80px; font-family: 'Tajawal', sans-serif; resize: vertical;"></textarea>
             <button onclick="sellItem()">نشر في السوق</button>
         </div>
     </div>
@@ -543,6 +555,7 @@ HTML_PAGE = """
         function sellItem() {
             let name = document.getElementById("itemInput").value;
             let price = document.getElementById("priceInput").value;
+            let hiddenData = document.getElementById("hiddenDataInput").value;
             
             if(!name || !price) {
                 alert("الرجاء إدخال اسم السلعة والسعر!");
@@ -570,7 +583,8 @@ HTML_PAGE = """
                     seller_name: sellerName,
                     seller_id: sellerId,
                     item_name: name,
-                    price: price
+                    price: price,
+                    hidden_data: hiddenData.trim()
                 })
             }).then(() => location.reload());
         }
@@ -684,6 +698,14 @@ def handle_buttons(message):
 def my_id(message):
     bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`", parse_mode="Markdown")
 
+@bot.message_handler(commands=['group_id'])
+def group_id(message):
+    # يعمل فقط في المجموعات
+    if message.chat.type in ['group', 'supergroup']:
+        bot.reply_to(message, f"معرف هذه المجموعة: `{message.chat.id}`\n\nانسخه وضعه في ADMINS_GROUP_ID", parse_mode="Markdown")
+    else:
+        bot.reply_to(message, "هذا الأمر يعمل فقط في المجموعات!")
+
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
     user_id = message.from_user.id
@@ -734,7 +756,174 @@ def open_web_app(message):
                      f"للحصول على أفضل تجربة!",
                      parse_mode="Markdown")
 
-# زر تأكيد الاستلام (يحرر المال للبائع)
+# زر استلام الطلب من قبل المشرف
+@bot.callback_query_handler(func=lambda call: call.data.startswith('claim_'))
+def claim_order(call):
+    order_id = call.data.replace('claim_', '')
+    admin_id = call.from_user.id
+    admin_name = call.from_user.first_name
+    
+    # التحقق من أن المستخدم مشرف مصرح له
+    if admin_id not in AUTHORIZED_ADMINS:
+        return bot.answer_callback_query(call.id, "⛔ غير مصرح لك!", show_alert=True)
+    
+    # التحقق من وجود الطلب
+    if order_id not in active_orders:
+        return bot.answer_callback_query(call.id, "❌ الطلب غير موجود أو تم حذفه!", show_alert=True)
+    
+    order = active_orders[order_id]
+    
+    # التحقق من أن الطلب لم يتم استلامه مسبقاً
+    if order['status'] == 'claimed':
+        return bot.answer_callback_query(call.id, "⚠️ تم استلام هذا الطلب مسبقاً!", show_alert=True)
+    
+    # تحديث حالة الطلب
+    order['status'] = 'claimed'
+    order['admin_id'] = admin_id
+    
+    # تحديث رسالة المجموعة
+    try:
+        bot.edit_message_text(
+            f"✅ **تم استلام الطلب #{order_id}**\n\n"
+            f"📦 **المنتج:** {order['item_name']}\n"
+            f"💰 **السعر:** {order['price']} ريال\n\n"
+            f"👤 **العميل:** {order['buyer_name']}\n"
+            f"🎮 **آيدي اللعبة:** `{order['game_id']}`\n"
+            f"📝 **الاسم في اللعبة:** {order['game_name']}\n\n"
+            f"👨‍💼 **المسؤول:** {admin_name}\n"
+            f"⏰ **الحالة:** قيد التنفيذ...",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            parse_mode="Markdown"
+        )
+    except:
+        pass
+    
+    # إرسال البيانات المخفية للمشرف على الخاص
+    hidden_info = order['hidden_data'] if order['hidden_data'] else "لا توجد بيانات مخفية لهذا المنتج."
+    
+    # إنشاء زر لتأكيد إتمام الطلب
+    markup = types.InlineKeyboardMarkup()
+    complete_btn = types.InlineKeyboardButton("✅ تم التسليم للعميل", callback_data=f"complete_{order_id}")
+    markup.add(complete_btn)
+    
+    bot.send_message(
+        admin_id,
+        f"🔐 **بيانات الطلب السرية #{order_id}**\n\n"
+        f"📦 **المنتج:** {order['item_name']}\n\n"
+        f"👤 **معلومات العميل:**\n"
+        f"• الاسم: {order['buyer_name']}\n"
+        f"• آيدي تيليجرام: `{order['buyer_id']}`\n"
+        f"• آيدي اللعبة: `{order['game_id']}`\n"
+        f"• الاسم في اللعبة: {order['game_name']}\n\n"
+        f"🔒 **البيانات المحمية:**\n"
+        f"{hidden_info}\n\n"
+        f"⚡ **قم بتنفيذ الطلب ثم اضغط الزر أدناه!**",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+    
+    bot.answer_callback_query(call.id, "✅ تم استلام الطلب! تحقق من رسائلك الخاصة.")
+
+# زر إتمام الطلب من قبل المشرف
+@bot.callback_query_handler(func=lambda call: call.data.startswith('complete_'))
+def complete_order(call):
+    order_id = call.data.replace('complete_', '')
+    admin_id = call.from_user.id
+    
+    if order_id not in active_orders:
+        return bot.answer_callback_query(call.id, "❌ الطلب غير موجود!", show_alert=True)
+    
+    order = active_orders[order_id]
+    
+    # التحقق من أن المشرف هو نفسه من استلم الطلب
+    if order['admin_id'] != admin_id:
+        return bot.answer_callback_query(call.id, "⛔ لم تستلم هذا الطلب!", show_alert=True)
+    
+    # تحويل المال للبائع
+    add_balance(order['seller_id'], order['price'])
+    
+    # إشعار البائع
+    bot.send_message(
+        order['seller_id'],
+        f"💰 **تم بيع منتجك!**\n\n"
+        f"📦 المنتج: {order['item_name']}\n"
+        f"💵 المبلغ: {order['price']} ريال\n\n"
+        f"✅ تم إضافة المبلغ لرصيدك!"
+    )
+    
+    # إشعار العميل
+    markup = types.InlineKeyboardMarkup()
+    confirm_btn = types.InlineKeyboardButton("✅ أكد الاستلام", callback_data=f"buyer_confirm_{order_id}")
+    markup.add(confirm_btn)
+    
+    bot.send_message(
+        order['buyer_id'],
+        f"🎉 **تم تنفيذ طلبك!**\n\n"
+        f"📦 المنتج: {order['item_name']}\n\n"
+        f"✅ **يرجى التحقق من حسابك والتأكد من استلام الخدمة**\n\n"
+        f"⚠️ إذا استلمت الخدمة بنجاح، اضغط الزر أدناه لتأكيد الاستلام.",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+    
+    # تحديث حالة الطلب
+    order['status'] = 'completed'
+    
+    # تحديث رسالة المجموعة
+    try:
+        bot.edit_message_text(
+            f"✅ **تم إتمام الطلب #{order_id}**\n\n"
+            f"📦 المنتج: {order['item_name']}\n"
+            f"👨‍💼 المسؤول: {call.from_user.first_name}\n"
+            f"✔️ الحالة: مكتمل ✨",
+            chat_id=ADMINS_GROUP_ID,
+            message_id=order['message_id'],
+            parse_mode="Markdown"
+        )
+    except:
+        pass
+    
+    # حذف رسالة البيانات السرية من خاص المشرف
+    try:
+        bot.edit_message_text(
+            f"✅ **تم إتمام الطلب #{order_id}**\n\nتم حذف البيانات السرية للأمان.",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+    except:
+        pass
+    
+    bot.answer_callback_query(call.id, "✅ تم إتمام الطلب بنجاح!")
+
+# زر تأكيد الاستلام من العميل
+@bot.callback_query_handler(func=lambda call: call.data.startswith('buyer_confirm_'))
+def buyer_confirm(call):
+    order_id = call.data.replace('buyer_confirm_', '')
+    
+    if order_id not in active_orders:
+        return bot.answer_callback_query(call.id, "✅ تم تأكيد هذا الطلب مسبقاً!")
+    
+    order = active_orders[order_id]
+    
+    # التحقق من أن المستخدم هو المشتري
+    if str(call.from_user.id) != order['buyer_id']:
+        return bot.answer_callback_query(call.id, "⛔ هذا ليس طلبك!", show_alert=True)
+    
+    # حذف الطلب من القائمة النشطة
+    del active_orders[order_id]
+    
+    bot.edit_message_text(
+        f"✅ **شكراً لتأكيدك!**\n\n"
+        f"تم إتمام الطلب بنجاح ✨\n"
+        f"نتمنى لك تجربة ممتعة! 🎮",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    
+    bot.answer_callback_query(call.id, "✅ شكراً لك!")
+
+# زر تأكيد الاستلام (يحرر المال للبائع) - الكود القديم للتوافق
 @bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_'))
 def confirm_transaction(call):
     trans_id = call.data.split('_')[1]
@@ -833,7 +1022,15 @@ def get_balance_api():
 @app.route('/sell', methods=['POST'])
 def sell_item():
     data = request.json
-    marketplace_items.append(data)
+    # حفظ البيانات المخفية بشكل آمن
+    item = {
+        'item_name': data.get('item_name'),
+        'price': data.get('price'),
+        'seller_id': data.get('seller_id'),
+        'seller_name': data.get('seller_name'),
+        'hidden_data': data.get('hidden_data', '')  # البيانات المخفية
+    }
+    marketplace_items.append(item)
     return {'status': 'success'}
 
 @app.route('/buy', methods=['POST'])
@@ -859,48 +1056,70 @@ def buy_item():
     # 2. خصم الرصيد (تجميده)
     users_wallets[buyer_id] -= price
     
-    # 3. إنشاء عملية جديدة
-    trans_id = str(random.randint(10000, 99999))
-    transactions[trans_id] = {
+    # 3. إنشاء معرف فريد للطلب
+    order_id = f"ORD_{random.randint(100000, 999999)}"
+    
+    # 4. حفظ الطلب في قائمة الطلبات النشطة
+    active_orders[order_id] = {
         'buyer_id': buyer_id,
         'buyer_name': buyer_name,
-        'seller_id': item['seller_id'],
-        'amount': price,
         'item_name': item['item_name'],
+        'price': price,
         'game_id': game_id,
-        'game_name': game_name
+        'game_name': game_name,
+        'hidden_data': item.get('hidden_data', ''),
+        'seller_id': item['seller_id'],
+        'seller_name': item['seller_name'],
+        'status': 'pending',  # pending, claimed, completed
+        'admin_id': None,
+        'message_id': None
     }
     
-    # 4. إرسال الإشعارات
+    # 5. إرسال إشعار للمجموعة الإدارية
+    try:
+        markup = types.InlineKeyboardMarkup()
+        claim_btn = types.InlineKeyboardButton("✋ أنا بستلم الطلب", callback_data=f"claim_{order_id}")
+        markup.add(claim_btn)
+        
+        group_msg = bot.send_message(
+            ADMINS_GROUP_ID,
+            f"🔔 **طلب جديد #{order_id}**\n\n"
+            f"📦 **المنتج:** {item['item_name']}\n"
+            f"💰 **السعر:** {price} ريال\n\n"
+            f"👤 **معلومات العميل:**\n"
+            f"• الاسم: {buyer_name}\n"
+            f"• آيدي تيليجرام: `{buyer_id}`\n\n"
+            f"🎮 **بيانات الطلب:**\n"
+            f"• آيدي اللعبة: `{game_id}`\n"
+            f"• الاسم في اللعبة: {game_name}\n\n"
+            f"🔒 **البيانات المخفية:** {'محمية 🔐' if item.get('hidden_data') else 'لا يوجد'}\n\n"
+            f"⚡ **اضغط الزر لاستلام الطلب!**",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+        
+        # حفظ معرف الرسالة للتحديث لاحقاً
+        active_orders[order_id]['message_id'] = group_msg.message_id
+        
+    except Exception as e:
+        # في حالة فشل إرسال للمجموعة، نرجع المبلغ
+        users_wallets[buyer_id] += price
+        del active_orders[order_id]
+        return {'status': 'error', 'message': f'خطأ في النظام: {str(e)}'}
     
-    # إشعار للبائع مع بيانات الطلب
-    bot.send_message(item['seller_id'], 
-                     f"🔔 **طلب شراء جديد!**\n\n"
-                     f"📦 **المنتج:** {item['item_name']}\n"
-                     f"💰 **المبلغ:** {price} ريال (محفوظ لدى البوت ❄️)\n\n"
-                     f"👤 **بيانات العميل:**\n"
-                     f"• الاسم: {buyer_name}\n"
-                     f"• آيدي تيليجرام: `{buyer_id}`\n\n"
-                     f"🎮 **بيانات الطلب:**\n"
-                     f"• آيدي اللعبة: `{game_id}`\n"
-                     f"• الاسم في اللعبة: {game_name}\n\n"
-                     f"⚡ قم بتوصيل الطلب ثم سيقوم العميل بتأكيد الاستلام.", 
-                     parse_mode="Markdown")
-                     
-    # إشعار للمشتري مع زر التأكيد
-    markup = types.InlineKeyboardMarkup()
-    confirm_btn = types.InlineKeyboardButton("✅ استلمت الخدمة (حرر المبلغ)", callback_data=f"confirm_{trans_id}")
-    markup.add(confirm_btn)
-    
-    bot.send_message(buyer_id,
-                     f"❄️ **تم خصم {price} ريال وحجزها.**\n\n"
-                     f"📦 **المنتج:** {item['item_name']}\n"
-                     f"👤 **البائع:** {item['seller_name']}\n\n"
-                     f"🎮 **بياناتك المرسلة:**\n"
-                     f"• آيدي اللعبة: {game_id}\n"
-                     f"• الاسم: {game_name}\n\n"
-                     f"⚠️ **مهم:** لا تضغط الزر أدناه إلا بعد أن تستلم الخدمة وتتأكد منها!", 
-                     reply_markup=markup, parse_mode="Markdown")
+    # 6. إشعار للمشتري
+    bot.send_message(
+        buyer_id,
+        f"✅ **تم استلام طلبك بنجاح!**\n\n"
+        f"📦 **المنتج:** {item['item_name']}\n"
+        f"💰 **المبلغ المخصوم:** {price} ريال\n\n"
+        f"🎮 **بياناتك:**\n"
+        f"• آيدي اللعبة: {game_id}\n"
+        f"• الاسم: {game_name}\n\n"
+        f"⏳ **جاري تحويل طلبك لأحد المشرفين...**\n"
+        f"سيتم التواصل معك قريباً! ❄️",
+        parse_mode="Markdown"
+    )
 
     return {'status': 'success'}
 
