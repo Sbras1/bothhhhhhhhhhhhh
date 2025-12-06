@@ -18,7 +18,7 @@ SITE_URL = os.environ.get("SITE_URL", "https://example.com")
 
 # معرف مجموعة المشرفين (Group ID)
 # لمعرفة الآيدي: أضف البوت للمجموعة وأرسل /group_id
-ADMINS_GROUP_ID = os.environ.get("ADMINS_GROUP_ID", "-1001234567890")  # غير هذا
+ADMINS_GROUP_ID = os.environ.get("ADMINS_GROUP_ID", "-1001522160959")  # غير هذا
 
 # قائمة المشرفين المصرح لهم (يمكن إضافة أكثر من مشرف)
 AUTHORIZED_ADMINS = [5665438577]  # أضف آيديات المشرفين هنا
