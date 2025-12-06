@@ -23,7 +23,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-here-change-it")
 # --- قواعد البيانات (في الذاكرة حالياً) ---
 # ملاحظة: هذه البيانات ستمسح عند إعادة تشغيل السيرفر.
 
-# قائمة المنتجات
+# قائمة المنتجات/الخدمات
+# الشكل: { item_name, price, seller_id, seller_name }
 marketplace_items = []
 
 # بيانات المستخدمين (الرصيد)
@@ -401,9 +402,9 @@ HTML_PAGE = """
                 <div style="color: #a29bfe; font-weight:bold">{{ item.price }} ريال</div>
             </div>
             {% if item.seller_id|string != current_user_id|string %}
-                <button class="buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}')">شراء ❄️</button>
+                <button class="buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}')">شراء ❄️</button>
             {% else %}
-                <small>سلعتك</small>
+                <small>منتجك</small>
             {% endif %}
         </div>
         {% endfor %}
@@ -574,29 +575,63 @@ HTML_PAGE = """
             }).then(() => location.reload());
         }
 
-        function buyItem(itemIndex, price) {
+        function buyItem(itemIndex, price, itemName) {
+            // التحقق من الرصيد أولاً
             if(userBalance < price) {
-                tg.showAlert("❌ رصيدك غير كافي! اشحن محفظتك أولاً.");
+                alert("❌ رصيدك غير كافي! اشحن محفظتك أولاً.");
                 return;
             }
 
-            tg.showConfirm("سيتم خصم المبلغ وحجزه حتى تستلم السلعة.\\nهل أنت متأكد؟", function(ok) {
-                if(ok) {
-                    fetch('/buy', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            buyer_id: user.id,
-                            buyer_name: user.first_name,
-                            item_index: itemIndex
-                        })
-                    }).then(r => r.json()).then(data => {
-                        if(data.status == 'success') {
-                            tg.close();
-                        } else {
-                            tg.showAlert(data.message);
-                        }
-                    });
+            // طلب بيانات الطلب من المشتري
+            const gameId = prompt("أدخل آيدي اللعبة الخاص بك:");
+            if(!gameId || gameId.trim() === '') {
+                alert("يجب إدخال آيدي اللعبة!");
+                return;
+            }
+
+            const gameName = prompt("أدخل اسمك في اللعبة:");
+            if(!gameName || gameName.trim() === '') {
+                alert("يجب إدخال الاسم في اللعبة!");
+                return;
+            }
+
+            // تأكيد الطلب
+            const confirmMsg = `هل تريد شراء: ${itemName}\nالسعر: ${price} ريال\n\nآيدي اللعبة: ${gameId}\nالاسم: ${gameName}\n\nسيتم خصم المبلغ وحجزه حتى تستلم الخدمة.`;
+            
+            if(!confirm(confirmMsg)) {
+                return;
+            }
+
+            // تحديد بيانات المشتري
+            let buyerId = currentUserId;
+            let buyerName = '{{ user_name }}';
+            
+            if(user && user.id) {
+                buyerId = user.id;
+                buyerName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+            }
+
+            if(!buyerId || buyerId == 0) {
+                alert("الرجاء تسجيل الدخول أولاً!");
+                return;
+            }
+
+            fetch('/buy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    buyer_id: buyerId,
+                    buyer_name: buyerName,
+                    item_index: itemIndex,
+                    game_id: gameId.trim(),
+                    game_name: gameName.trim()
+                })
+            }).then(r => r.json()).then(data => {
+                if(data.status == 'success') {
+                    alert('✅ تم إرسال طلبك بنجاح! سيتواصل معك البائع قريباً.');
+                    location.reload();
+                } else {
+                    alert('❌ ' + data.message);
                 }
             });
         }
@@ -723,8 +758,8 @@ def confirm_transaction(call):
     # حذف العملية من الانتظار
     del transactions[trans_id]
     
-    bot.edit_message_text(f"✅ تم تأكيد استلام السلعة: {trans['item_name']}\nتم تحويل {amount} ريال للبائع.", call.message.chat.id, call.message.message_id)
-    bot.send_message(seller_id, f"🤑 مبروك! قام المشتري بتأكيد الاستلام.\nتم إضافة {amount} ريال لرصيدك.")
+    bot.edit_message_text(f"✅ تم تأكيد استلام الخدمة: {trans['item_name']}\nتم تحويل {amount} ريال للبائع.", call.message.chat.id, call.message.message_id)
+    bot.send_message(seller_id, f"🤑 مبروك! قام العميل بتأكيد الاستلام.\n💰 تم إضافة {amount} ريال لرصيدك.\n📦 الطلب: {trans['item_name']}\n🎮 آيدي: {trans.get('game_id', 'غير محدد')}")
 
 # --- مسارات الموقع (Flask) ---
 
@@ -805,10 +840,13 @@ def sell_item():
 def buy_item():
     data = request.json
     buyer_id = str(data.get('buyer_id'))
+    buyer_name = data.get('buyer_name')
     item_index = int(data.get('item_index'))
+    game_id = data.get('game_id')
+    game_name = data.get('game_name')
     
     if item_index >= len(marketplace_items):
-        return {'status': 'error', 'message': 'السلعة غير موجودة'}
+        return {'status': 'error', 'message': 'المنتج غير موجود'}
     
     item = marketplace_items[item_index]
     price = float(item['price'])
@@ -825,33 +863,43 @@ def buy_item():
     trans_id = str(random.randint(10000, 99999))
     transactions[trans_id] = {
         'buyer_id': buyer_id,
+        'buyer_name': buyer_name,
         'seller_id': item['seller_id'],
         'amount': price,
-        'item_name': item['item_name']
+        'item_name': item['item_name'],
+        'game_id': game_id,
+        'game_name': game_name
     }
     
-    # 4. إزالة السلعة من السوق
-    del marketplace_items[item_index]
+    # 4. إرسال الإشعارات
     
-    # 5. إرسال الإشعارات
-    
-    # إشعار للبائع
+    # إشعار للبائع مع بيانات الطلب
     bot.send_message(item['seller_id'], 
-                     f"🔔 **طلب شراء جديد!**\n"
-                     f"شخص ما اشترى: {item['item_name']}\n"
-                     f"المبلغ ({price} ريال) محفوظ لدى البوت ❄️.\n"
-                     f"تواصل مع المشتري وسلمه السلعة.\n"
-                     f"آيدي المشتري: `{buyer_id}`", parse_mode="Markdown")
+                     f"🔔 **طلب شراء جديد!**\n\n"
+                     f"📦 **المنتج:** {item['item_name']}\n"
+                     f"💰 **المبلغ:** {price} ريال (محفوظ لدى البوت ❄️)\n\n"
+                     f"👤 **بيانات العميل:**\n"
+                     f"• الاسم: {buyer_name}\n"
+                     f"• آيدي تيليجرام: `{buyer_id}`\n\n"
+                     f"🎮 **بيانات الطلب:**\n"
+                     f"• آيدي اللعبة: `{game_id}`\n"
+                     f"• الاسم في اللعبة: {game_name}\n\n"
+                     f"⚡ قم بتوصيل الطلب ثم سيقوم العميل بتأكيد الاستلام.", 
+                     parse_mode="Markdown")
                      
     # إشعار للمشتري مع زر التأكيد
     markup = types.InlineKeyboardMarkup()
-    confirm_btn = types.InlineKeyboardButton("✅ استلمت السلعة (حرر المبلغ)", callback_data=f"confirm_{trans_id}")
+    confirm_btn = types.InlineKeyboardButton("✅ استلمت الخدمة (حرر المبلغ)", callback_data=f"confirm_{trans_id}")
     markup.add(confirm_btn)
     
     bot.send_message(buyer_id,
-                     f"❄️ **تم خصم {price} ريال وحجزها.**\n"
-                     f"السلعة: {item['item_name']}\n"
-                     f"لا تضغط الزر أدناه إلا بعد أن تستلم السلعة من البائع وتتأكد منها!", 
+                     f"❄️ **تم خصم {price} ريال وحجزها.**\n\n"
+                     f"📦 **المنتج:** {item['item_name']}\n"
+                     f"👤 **البائع:** {item['seller_name']}\n\n"
+                     f"🎮 **بياناتك المرسلة:**\n"
+                     f"• آيدي اللعبة: {game_id}\n"
+                     f"• الاسم: {game_name}\n\n"
+                     f"⚠️ **مهم:** لا تضغط الزر أدناه إلا بعد أن تستلم الخدمة وتتأكد منها!", 
                      reply_markup=markup, parse_mode="Markdown")
 
     return {'status': 'success'}
