@@ -350,7 +350,7 @@ HTML_PAGE = """
             transition: max-height 0.3s ease;
         }
         .sell-section.open {
-            max-height: 400px;
+            max-height: 600px;
         }
         
         /* نافذة تسجيل الدخول المنبثقة */
