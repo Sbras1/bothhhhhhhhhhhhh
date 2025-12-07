@@ -16,12 +16,15 @@ ADMIN_ID = 5665438577
 TOKEN = os.environ.get("BOT_TOKEN", "default_token")
 SITE_URL = os.environ.get("SITE_URL", "https://example.com")
 
-# معرف مجموعة المشرفين (Group ID)
-# لمعرفة الآيدي: أضف البوت للمجموعة وأرسل /group_id
-ADMINS_GROUP_ID = os.environ.get("ADMINS_GROUP_ID", "-1001522160959")  # غير هذا
-
-# قائمة المشرفين المصرح لهم (يمكن إضافة أكثر من مشرف)
-AUTHORIZED_ADMINS = [5665438577]  # أضف آيديات المشرفين هنا
+# قائمة المشرفين (آيدي تيليجرام)
+# يتم إرسال الطلبات لهم مباشرة في الخاص
+# يمكن إضافة حتى 10 مشرفين
+ADMINS_LIST = [
+    5665438577,  # المشرف 1
+    # أضف المزيد من المشرفين هنا (حتى 10)
+    # 123456789,  # المشرف 2
+    # 987654321,  # المشرف 3
+]
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
@@ -696,15 +699,7 @@ def handle_buttons(message):
 
 @bot.message_handler(commands=['my_id'])
 def my_id(message):
-    bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['group_id'])
-def group_id(message):
-    # يعمل فقط في المجموعات
-    if message.chat.type in ['group', 'supergroup']:
-        bot.reply_to(message, f"معرف هذه المجموعة: `{message.chat.id}`\n\nانسخه وضعه في ADMINS_GROUP_ID", parse_mode="Markdown")
-    else:
-        bot.reply_to(message, "هذا الأمر يعمل فقط في المجموعات!")
+    bot.reply_to(message, f"الآيدي الخاص بك: `{message.from_user.id}`\n\nأضف هذا الرقم في قائمة ADMINS_LIST لتصبح مشرفاً!", parse_mode="Markdown")
 
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
@@ -764,7 +759,7 @@ def claim_order(call):
     admin_name = call.from_user.first_name
     
     # التحقق من أن المستخدم مشرف مصرح له
-    if admin_id not in AUTHORIZED_ADMINS:
+    if admin_id not in ADMINS_LIST:
         return bot.answer_callback_query(call.id, "⛔ غير مصرح لك!", show_alert=True)
     
     # التحقق من وجود الطلب
@@ -781,20 +776,29 @@ def claim_order(call):
     order['status'] = 'claimed'
     order['admin_id'] = admin_id
     
-    # تحديث رسالة المجموعة
+    # تحديث رسالة المشرف الذي استلم
     try:
         bot.edit_message_text(
             f"✅ تم استلام الطلب #{order_id}\n\n"
             f"📦 المنتج: {order['item_name']}\n"
             f"💰 السعر: {order['price']} ريال\n\n"
-            f"👨‍💼 المسؤول: {admin_name}\n"
+            f"👨‍💼 أنت المسؤول عن هذا الطلب\n"
             f"⏰ الحالة: قيد التنفيذ...\n\n"
-            f"🔒 تم إرسال البيانات للمسؤول",
+            f"🔒 سيتم إرسال البيانات السرية لك الآن...",
             chat_id=call.message.chat.id,
             message_id=call.message.message_id
         )
     except:
         pass
+    
+    # حذف الرسالة من المشرفين الآخرين
+    if 'admin_messages' in order:
+        for other_admin_id, msg_id in order['admin_messages'].items():
+            if other_admin_id != admin_id:
+                try:
+                    bot.delete_message(other_admin_id, msg_id)
+                except:
+                    pass
     
     # إرسال البيانات المخفية للمشرف على الخاص
     hidden_info = order['hidden_data'] if order['hidden_data'] else "لا توجد بيانات مخفية لهذا المنتج."
@@ -864,19 +868,6 @@ def complete_order(call):
     
     # تحديث حالة الطلب
     order['status'] = 'completed'
-    
-    # تحديث رسالة المجموعة
-    try:
-        bot.edit_message_text(
-            f"✅ تم إتمام الطلب #{order_id}\n\n"
-            f"📦 المنتج: {order['item_name']}\n"
-            f"👨‍💼 المسؤول: {call.from_user.first_name}\n"
-            f"✔️ الحالة: مكتمل ✨",
-            chat_id=ADMINS_GROUP_ID,
-            message_id=order['message_id']
-        )
-    except:
-        pass
     
     # حذف رسالة البيانات السرية من خاص المشرف
     try:
@@ -1069,32 +1060,41 @@ def buy_item():
         'message_id': None
     }
     
-    # 5. إرسال إشعار للمجموعة الإدارية (بدون بيانات حساسة)
-    try:
-        markup = types.InlineKeyboardMarkup()
-        claim_btn = types.InlineKeyboardButton("✋ أنا بستلم الطلب", callback_data=f"claim_{order_id}")
-        markup.add(claim_btn)
-        
-        group_msg = bot.send_message(
-            ADMINS_GROUP_ID,
-            f"🔔 طلب جديد #{order_id}\n\n"
-            f"📦 المنتج: {item['item_name']}\n"
-            f"💰 السعر: {price} ريال\n\n"
-            f"🔒 بيانات العميل: محمية 🔐\n"
-            f"🔒 بيانات الطلب: محمية 🔐\n"
-            f"🔒 البيانات المخفية: {'محمية 🔐' if item.get('hidden_data') else 'لا يوجد'}\n\n"
-            f"⚡ اضغط الزر لاستلام الطلب ورؤية البيانات!",
-            reply_markup=markup
-        )
-        
-        # حفظ معرف الرسالة للتحديث لاحقاً
-        active_orders[order_id]['message_id'] = group_msg.message_id
-        
-    except Exception as e:
-        # في حالة فشل إرسال للمجموعة، نرجع المبلغ
+    # 5. إرسال إشعار لجميع المشرفين في الخاص
+    markup = types.InlineKeyboardMarkup()
+    claim_btn = types.InlineKeyboardButton("✋ أنا بستلم الطلب", callback_data=f"claim_{order_id}")
+    markup.add(claim_btn)
+    
+    notification_text = (
+        f"🔔 طلب جديد #{order_id}\n\n"
+        f"📦 المنتج: {item['item_name']}\n"
+        f"💰 السعر: {price} ريال\n\n"
+        f"🔒 بيانات العميل: محمية 🔐\n"
+        f"🔒 بيانات الطلب: محمية 🔐\n"
+        f"🔒 البيانات المخفية: {'محمية 🔐' if item.get('hidden_data') else 'لا يوجد'}\n\n"
+        f"⚡ اضغط الزر لاستلام الطلب ورؤية البيانات!"
+    )
+    
+    # إرسال لكل مشرف في القائمة
+    sent_count = 0
+    for admin_id in ADMINS_LIST:
+        try:
+            msg = bot.send_message(admin_id, notification_text, reply_markup=markup)
+            # حفظ معرف الرسالة لكل مشرف
+            if 'admin_messages' not in active_orders[order_id]:
+                active_orders[order_id]['admin_messages'] = {}
+            active_orders[order_id]['admin_messages'][admin_id] = msg.message_id
+            sent_count += 1
+        except Exception as e:
+            print(f"فشل إرسال للمشرف {admin_id}: {str(e)}")
+            continue
+    
+    # التحقق من أنه تم الإرسال لمشرف واحد على الأقل
+    if sent_count == 0:
+        # في حالة فشل الإرسال لجميع المشرفين، نرجع المبلغ
         users_wallets[buyer_id] += price
         del active_orders[order_id]
-        return {'status': 'error', 'message': f'خطأ في النظام: {str(e)}'}
+        return {'status': 'error', 'message': 'عذراً، جميع المشرفين غير متاحين حالياً. تم إرجاع المبلغ.'}
     
     # 6. إشعار للمشتري
     bot.send_message(
