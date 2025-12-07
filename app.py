@@ -128,9 +128,19 @@ HTML_PAGE = """
         /* تصميم بطاقات المنتجات الجديد */
         .product-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 16px;
             margin-top: 16px;
+        }
+        @media (max-width: 900px) {
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
         }
         .product-card {
             background: var(--card-bg);
