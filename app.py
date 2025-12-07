@@ -144,20 +144,22 @@ HTML_PAGE = """
             position: relative;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
         }
         .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
         }
         .product-image {
             width: 100%;
-            height: 200px;
+            height: 140px;
             object-fit: cover;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 60px;
+            font-size: 50px;
         }
         .product-image img {
             width: 100%;
@@ -166,50 +168,55 @@ HTML_PAGE = """
         }
         .product-badge {
             position: absolute;
-            top: 12px;
-            right: 12px;
+            top: 8px;
+            right: 8px;
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 11px;
             font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         .product-info {
-            padding: 16px;
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         .product-category {
             color: #a29bfe;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: inline-block;
             background: rgba(162, 155, 254, 0.2);
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            align-self: flex-start;
         }
         .product-name {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--text-color);
+            line-height: 1.3;
         }
         .product-seller {
             color: #888;
-            font-size: 13px;
-            margin-bottom: 12px;
+            font-size: 11px;
+            margin-bottom: 10px;
         }
         .product-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 12px;
-            padding-top: 12px;
+            margin-top: auto;
+            padding-top: 10px;
             border-top: 1px solid #444;
         }
         .product-price {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: bold;
             color: #00b894;
         }
@@ -217,22 +224,23 @@ HTML_PAGE = """
             background: linear-gradient(135deg, #00b894, #00cec9);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
+            padding: 8px 16px;
+            border-radius: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+            box-shadow: 0 2px 6px rgba(0, 184, 148, 0.3);
+            font-size: 13px;
         }
         .product-buy-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.5);
+            box-shadow: 0 4px 10px rgba(0, 184, 148, 0.5);
         }
         .my-product-badge {
             background: linear-gradient(135deg, #fdcb6e, #e17055);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 11px;
             font-weight: bold;
         }
         
