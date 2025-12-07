@@ -34,7 +34,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-here-change-it")
 # ملاحظة: هذه البيانات ستمسح عند إعادة تشغيل السيرفر.
 
 # قائمة المنتجات/الخدمات
-# الشكل: { item_name, price, seller_id, seller_name, hidden_data }
+# الشكل: { item_name, price, seller_id, seller_name, hidden_data, image_url, category }
 marketplace_items = []
 
 # الطلبات النشطة (قيد التنفيذ بواسطة المشرفين)
@@ -124,6 +124,112 @@ HTML_PAGE = """
         button { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; }
         .item-card { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #444; }
         .buy-btn { background: var(--green); width: auto; padding: 8px 20px; font-size: 0.9rem; }
+        
+        /* تصميم بطاقات المنتجات الجديد */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .product-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .product-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .product-info {
+            padding: 16px;
+        }
+        .product-category {
+            color: #a29bfe;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: inline-block;
+            background: rgba(162, 155, 254, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--text-color);
+        }
+        .product-seller {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #444;
+        }
+        .product-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00b894;
+        }
+        .product-buy-btn {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
+        }
+        .product-buy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.5);
+        }
+        .my-product-badge {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
         
         /* زر حسابي */
         .account-btn {
@@ -405,6 +511,8 @@ HTML_PAGE = """
         <div class="card">
             <h3>➕ بيع سلعة</h3>
             <input type="text" id="itemInput" placeholder="اسم السلعة">
+            <input type="text" id="categoryInput" placeholder="الفئة (مثال: شدات ببجي، شدات فري فاير)">
+            <input type="url" id="imageInput" placeholder="رابط صورة السلعة (اختياري)">
             <input type="number" id="priceInput" placeholder="السعر">
             <textarea id="hiddenDataInput" placeholder="البيانات المخفية (اختياري)\nمثال: Email: admin@gmail.com | Pass: 123456\nهذه البيانات لن تظهر للعملاء وستكون محمية 🔒" style="width: 100%; padding: 14px; margin-bottom: 12px; background: var(--bg-color); border: 1px solid #444; border-radius: 12px; color: var(--text-color); box-sizing: border-box; min-height: 80px; font-family: 'Tajawal', sans-serif; resize: vertical;"></textarea>
             <button onclick="sellItem()">نشر في السوق</button>
@@ -412,19 +520,34 @@ HTML_PAGE = """
     </div>
 
     <h3>🛒 السوق</h3>
-    <div id="market" class="card">
+    <div id="market" class="product-grid">
         {% for item in items %}
-        <div class="item-card">
-            <div>
-                <b style="font-size:1.1rem">{{ item.item_name }}</b><br>
-                <small style="color:gray">بائع: {{ item.seller_name }}</small>
-                <div style="color: #a29bfe; font-weight:bold">{{ item.price }} ريال</div>
+        <div class="product-card">
+            <div class="product-image">
+                {% if item.get('image_url') %}
+                <img src="{{ item.image_url }}" alt="{{ item.item_name }}">
+                {% else %}
+                🎁
+                {% endif %}
             </div>
-            {% if item.seller_id|string != current_user_id|string %}
-                <button class="buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}')">شراء ❄️</button>
-            {% else %}
-                <small>منتجك</small>
+            {% if item.get('category') %}
+            <div class="product-badge">{{ item.category }}</div>
             {% endif %}
+            <div class="product-info">
+                {% if item.get('category') %}
+                <span class="product-category">{{ item.category }}</span>
+                {% endif %}
+                <div class="product-name">{{ item.item_name }}</div>
+                <div class="product-seller">🏪 {{ item.seller_name }}</div>
+                <div class="product-footer">
+                    <div class="product-price">{{ item.price }} ريال</div>
+                    {% if item.seller_id|string != current_user_id|string %}
+                        <button class="product-buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}')">شراء 🛒</button>
+                    {% else %}
+                        <div class="my-product-badge">منتجك ⭐</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -561,6 +684,8 @@ HTML_PAGE = """
 
         function sellItem() {
             let name = document.getElementById("itemInput").value;
+            let category = document.getElementById("categoryInput").value;
+            let imageUrl = document.getElementById("imageInput").value;
             let price = document.getElementById("priceInput").value;
             let hiddenData = document.getElementById("hiddenDataInput").value;
             
@@ -590,6 +715,8 @@ HTML_PAGE = """
                     seller_name: sellerName,
                     seller_id: sellerId,
                     item_name: name,
+                    category: category.trim(),
+                    image_url: imageUrl.trim(),
                     price: price,
                     hidden_data: hiddenData.trim()
                 })
@@ -1128,7 +1255,9 @@ def sell_item():
         'price': data.get('price'),
         'seller_id': data.get('seller_id'),
         'seller_name': data.get('seller_name'),
-        'hidden_data': data.get('hidden_data', '')  # البيانات المخفية
+        'hidden_data': data.get('hidden_data', ''),  # البيانات المخفية
+        'category': data.get('category', ''),  # الفئة
+        'image_url': data.get('image_url', '')  # رابط الصورة
     }
     marketplace_items.append(item)
     return {'status': 'success'}
