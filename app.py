@@ -570,6 +570,8 @@ HTML_PAGE = """
         <button class="category-btn" onclick="filterCategory('شدات ببجي')">شدات ببجي 🎮</button>
         <button class="category-btn" onclick="filterCategory('شدات فري فاير')">شدات فري فاير 🔥</button>
         <button class="category-btn" onclick="filterCategory('بطاقات')">بطاقات 💳</button>
+        <button class="category-btn" onclick="filterCategory('حسابات')">حسابات 👤</button>
+        <button class="category-btn" onclick="filterCategory('أخرى')">أخرى ⭐</button>
     </div>
     
     <div id="market" class="product-grid">
