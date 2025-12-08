@@ -286,6 +286,15 @@ HTML_PAGE = """
         .cat-icon {
             font-size: 28px;
             margin-bottom: 8px;
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        
+        .cat-icon.emoji {
+            font-size: 28px;
+            width: auto;
+            height: auto;
         }
 
         /* العنوان */
@@ -607,32 +616,32 @@ HTML_PAGE = """
 
     <div class="categories-grid">
         <div class="cat-card bg-all" onclick="filterCategory('all')">
-            <span class="cat-icon">🌟</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/2278/2278992.png" alt="الكل">
             <div class="cat-title">الكل</div>
         </div>
         
         <div class="cat-card bg-pubg" onclick="filterCategory('شدات ببجي')">
-            <span class="cat-icon">🔫</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1670/1670921.png" alt="ببجي">
             <div class="cat-title">ببجي</div>
         </div>
         
         <div class="cat-card bg-ff" onclick="filterCategory('شدات فري فاير')">
-            <span class="cat-icon">🔥</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/785/785116.png" alt="فري فاير">
             <div class="cat-title">فري فاير</div>
         </div>
 
         <div class="cat-card bg-card" onclick="filterCategory('بطاقات')">
-            <span class="cat-icon">💳</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1170/1170576.png" alt="بطاقات">
             <div class="cat-title">بطاقات</div>
         </div>
         
         <div class="cat-card bg-account" onclick="filterCategory('حسابات')">
-            <span class="cat-icon">👤</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png" alt="حسابات">
             <div class="cat-title">حسابات</div>
         </div>
         
         <div class="cat-card bg-other" onclick="filterCategory('أخرى')">
-            <span class="cat-icon">⭐</span>
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/2087/2087815.png" alt="أخرى">
             <div class="cat-title">أخرى</div>
         </div>
     </div>
