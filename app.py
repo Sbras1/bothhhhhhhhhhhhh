@@ -527,7 +527,6 @@ HTML_PAGE = """
             <input type="text" id="categoryInput" placeholder="الفئة (مثال: شدات ببجي، شدات فري فاير)">
             <input type="url" id="imageInput" placeholder="رابط صورة السلعة (اختياري)">
             <input type="number" id="priceInput" placeholder="السعر">
-            <textarea id="hiddenDataInput" placeholder="البيانات المخفية (اختياري)\nمثال: Email: admin@gmail.com | Pass: 123456\nهذه البيانات لن تظهر للعملاء وستكون محمية 🔒" style="width: 100%; padding: 14px; margin-bottom: 12px; background: var(--bg-color); border: 1px solid #444; border-radius: 12px; color: var(--text-color); box-sizing: border-box; min-height: 80px; font-family: 'Tajawal', sans-serif; resize: vertical;"></textarea>
             <button onclick="sellItem()">نشر في السوق</button>
         </div>
     </div>
@@ -700,7 +699,6 @@ HTML_PAGE = """
             let category = document.getElementById("categoryInput").value;
             let imageUrl = document.getElementById("imageInput").value;
             let price = document.getElementById("priceInput").value;
-            let hiddenData = document.getElementById("hiddenDataInput").value;
             
             if(!name || !price) {
                 alert("الرجاء إدخال اسم السلعة والسعر!");
@@ -731,7 +729,7 @@ HTML_PAGE = """
                     category: category.trim(),
                     image_url: imageUrl.trim(),
                     price: price,
-                    hidden_data: hiddenData.trim()
+                    hidden_data: ''
                 })
             }).then(() => location.reload());
         }
