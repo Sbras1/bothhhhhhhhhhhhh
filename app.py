@@ -244,35 +244,73 @@ HTML_PAGE = """
             font-weight: bold;
         }
         
-        /* أزرار الفئات */
-        .categories-container {
-            display: flex;
+        /* حاوية الفئات - الشبكة */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            margin: 16px 0;
-            flex-wrap: wrap;
+            padding: 5px;
+            margin-bottom: 20px;
         }
-        .category-btn {
-            background: var(--card-bg);
-            color: var(--text-color);
-            border: 2px solid #444;
-            padding: 10px 18px;
-            border-radius: 20px;
-            font-weight: bold;
+
+        /* كرت الفئة */
+        .cat-card {
+            position: relative;
+            border-radius: 12px;
+            padding: 15px 5px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-            font-family: 'Tajawal', sans-serif;
+            text-align: center;
+            background: #2d2d2d;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cat-card:active {
+            transform: scale(0.95);
+        }
+
+        /* الألوان الخلفية (تدرجات خفيفة) */
+        .bg-all { background: linear-gradient(180deg, #2d2d2d 0%, #3a2d44 100%); border-bottom: 2px solid #6c5ce7; }
+        .bg-pubg { background: linear-gradient(180deg, #2d2d2d 0%, #3a2a44 100%); border-bottom: 2px solid #f5576c; }
+        .bg-ff { background: linear-gradient(180deg, #2d2d2d 0%, #44352a 100%); border-bottom: 2px solid #f0932b; }
+        .bg-card { background: linear-gradient(180deg, #2d2d2d 0%, #2a3b44 100%); border-bottom: 2px solid #4facfe; }
+        .bg-account { background: linear-gradient(180deg, #2d2d2d 0%, #2a4430 100%); border-bottom: 2px solid #00b894; }
+        .bg-other { background: linear-gradient(180deg, #2d2d2d 0%, #442a2a 100%); border-bottom: 2px solid #e17055; }
+
+        /* الأيقونة */
+        .cat-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        /* العنوان */
+        .cat-title {
+            color: #fff;
+            font-size: 13px;
+            font-weight: bold;
             white-space: nowrap;
         }
-        .category-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+        
+        .categories-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            margin-bottom: 10px;
         }
-        .category-btn.active {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            border-color: #6c5ce7;
-            color: white;
-            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+        
+        .categories-header h3 {
+            margin: 0;
+        }
+        
+        .categories-header small {
+            color: #6c5ce7;
+            cursor: pointer;
         }
         
         /* زر حسابي */
@@ -562,18 +600,44 @@ HTML_PAGE = """
         </div>
     </div>
 
-    <h3>🛒 السوق</h3>
-    
-    <!-- أزرار الفئات -->
-    <div class="categories-container">
-        <button class="category-btn active" onclick="filterCategory('all')">الكل 🌟</button>
-        <button class="category-btn" onclick="filterCategory('شدات ببجي')">شدات ببجي 🎮</button>
-        <button class="category-btn" onclick="filterCategory('شدات فري فاير')">شدات فري فاير 🔥</button>
-        <button class="category-btn" onclick="filterCategory('بطاقات')">بطاقات 💳</button>
-        <button class="category-btn" onclick="filterCategory('حسابات')">حسابات 👤</button>
-        <button class="category-btn" onclick="filterCategory('أخرى')">أخرى ⭐</button>
+    <div class="categories-header">
+        <h3>💎 الأقسام</h3>
+        <small onclick="filterCategory('all')">عرض الكل</small>
     </div>
-    
+
+    <div class="categories-grid">
+        <div class="cat-card bg-all" onclick="filterCategory('all')">
+            <span class="cat-icon">🌟</span>
+            <div class="cat-title">الكل</div>
+        </div>
+        
+        <div class="cat-card bg-pubg" onclick="filterCategory('شدات ببجي')">
+            <span class="cat-icon">🔫</span>
+            <div class="cat-title">ببجي</div>
+        </div>
+        
+        <div class="cat-card bg-ff" onclick="filterCategory('شدات فري فاير')">
+            <span class="cat-icon">🔥</span>
+            <div class="cat-title">فري فاير</div>
+        </div>
+
+        <div class="cat-card bg-card" onclick="filterCategory('بطاقات')">
+            <span class="cat-icon">💳</span>
+            <div class="cat-title">بطاقات</div>
+        </div>
+        
+        <div class="cat-card bg-account" onclick="filterCategory('حسابات')">
+            <span class="cat-icon">👤</span>
+            <div class="cat-title">حسابات</div>
+        </div>
+        
+        <div class="cat-card bg-other" onclick="filterCategory('أخرى')">
+            <span class="cat-icon">⭐</span>
+            <div class="cat-title">أخرى</div>
+        </div>
+    </div>
+
+    <h3>🛒 السوق</h3>
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card">
@@ -780,12 +844,6 @@ HTML_PAGE = """
         let allItems = {{ items|tojson }};
         
         function filterCategory(category) {
-            // تحديث الأزرار النشطة
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
             // تصفية وعرض المنتجات
             const market = document.getElementById('market');
             market.innerHTML = '';
