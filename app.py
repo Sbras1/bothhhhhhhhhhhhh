@@ -247,22 +247,24 @@ HTML_PAGE = """
         /* أزرار الفئات */
         .categories-container {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin: 16px 0;
-            flex-wrap: wrap;
-            justify-content: center;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .category-btn {
             background: var(--card-bg);
             color: var(--text-color);
             border: 2px solid #444;
-            padding: 10px 20px;
-            border-radius: 25px;
+            padding: 8px 16px;
+            border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 14px;
+            font-size: 13px;
             font-family: 'Tajawal', sans-serif;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .category-btn:hover {
             transform: translateY(-2px);
