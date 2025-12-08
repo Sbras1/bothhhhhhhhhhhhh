@@ -244,6 +244,37 @@ HTML_PAGE = """
             font-weight: bold;
         }
         
+        /* أزرار الفئات */
+        .categories-container {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .category-btn {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 2px solid #444;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-family: 'Tajawal', sans-serif;
+        }
+        .category-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+        }
+        .category-btn.active {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            border-color: #6c5ce7;
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+        }
+        
         /* زر حسابي */
         .account-btn {
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
@@ -532,6 +563,15 @@ HTML_PAGE = """
     </div>
 
     <h3>🛒 السوق</h3>
+    
+    <!-- أزرار الفئات -->
+    <div class="categories-container">
+        <button class="category-btn active" onclick="filterCategory('all')">الكل 🌟</button>
+        <button class="category-btn" onclick="filterCategory('شدات ببجي')">شدات ببجي 🎮</button>
+        <button class="category-btn" onclick="filterCategory('شدات فري فاير')">شدات فري فاير 🔥</button>
+        <button class="category-btn" onclick="filterCategory('بطاقات')">بطاقات 💳</button>
+    </div>
+    
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card">
@@ -732,6 +772,48 @@ HTML_PAGE = """
                     hidden_data: ''
                 })
             }).then(() => location.reload());
+        }
+
+        // تصفية المنتجات حسب الفئة
+        let allItems = {{ items|tojson }};
+        
+        function filterCategory(category) {
+            // تحديث الأزرار النشطة
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // تصفية وعرض المنتجات
+            const market = document.getElementById('market');
+            market.innerHTML = '';
+            
+            const filteredItems = category === 'all' ? allItems : allItems.filter(item => item.category === category);
+            
+            filteredItems.forEach((item, index) => {
+                const isMyProduct = item.seller_id == currentUserId;
+                const productHTML = `
+                    <div class="product-card">
+                        <div class="product-image">
+                            ${item.image_url ? `<img src="${item.image_url}" alt="${item.item_name}">` : '🎁'}
+                        </div>
+                        ${item.category ? `<div class="product-badge">${item.category}</div>` : ''}
+                        <div class="product-info">
+                            ${item.category ? `<span class="product-category">${item.category}</span>` : ''}
+                            <div class="product-name">${item.item_name}</div>
+                            <div class="product-seller">🏪 ${item.seller_name}</div>
+                            <div class="product-footer">
+                                <div class="product-price">${item.price} ريال</div>
+                                ${!isMyProduct ? 
+                                    `<button class="product-buy-btn" onclick="buyItem('${allItems.indexOf(item)}', '${item.price}', '${item.item_name}')">شراء 🛒</button>` : 
+                                    `<div class="my-product-badge">منتجك ⭐</div>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+                market.innerHTML += productHTML;
+            });
         }
 
         function buyItem(itemIndex, price, itemName) {
