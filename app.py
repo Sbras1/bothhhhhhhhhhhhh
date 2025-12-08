@@ -249,22 +249,20 @@ HTML_PAGE = """
             display: flex;
             gap: 8px;
             margin: 16px 0;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            flex-wrap: wrap;
         }
         .category-btn {
             background: var(--card-bg);
             color: var(--text-color);
             border: 2px solid #444;
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 13px;
+            font-size: 14px;
             font-family: 'Tajawal', sans-serif;
             white-space: nowrap;
-            flex-shrink: 0;
         }
         .category-btn:hover {
             transform: translateY(-2px);
