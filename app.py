@@ -616,7 +616,7 @@ HTML_PAGE = """
 
     <div class="categories-grid">
         <div class="cat-card bg-all" onclick="filterCategory('all')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/2278/2278992.png" alt="الكل">
+            <img class="cat-icon" src="https://i.ibb.co/9mXDcKrD/photo-5877268892239989707-x.jpg" alt="الكل">
             <div class="cat-title">الكل</div>
         </div>
         
