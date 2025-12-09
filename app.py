@@ -326,8 +326,8 @@ HTML_PAGE = """
         .account-btn {
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
             color: white;
-            padding: 18px;
-            border-radius: 16px;
+            padding: 10px 16px;
+            border-radius: 12px;
             margin-bottom: 16px;
             cursor: pointer;
             display: flex;
@@ -335,6 +335,8 @@ HTML_PAGE = """
             align-items: center;
             box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
             transition: all 0.3s;
+            max-width: 180px;
+            margin-left: auto;
         }
         .account-btn:hover {
             transform: translateY(-2px);
@@ -343,16 +345,16 @@ HTML_PAGE = """
         .account-btn-left {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 18px;
+            gap: 8px;
+            font-size: 14px;
             font-weight: bold;
         }
         .account-icon {
-            font-size: 28px;
+            font-size: 18px;
         }
         .arrow {
             transition: transform 0.3s;
-            font-size: 16px;
+            font-size: 12px;
         }
         .arrow.open {
             transform: rotate(180deg);
