@@ -1215,6 +1215,78 @@ def list_admins_command(message):
     
     bot.reply_to(message, admins_list_text)
 
+# أمر إضافة منتج (فقط للمالك)
+@bot.message_handler(commands=['add_product'])
+def add_product_command(message):
+    # التحقق من أن المستخدم هو المالك
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
+    
+    bot.reply_to(message, 
+                 "📦 **إضافة منتج جديد**\n\n"
+                 "أرسل بيانات المنتج بالتنسيق التالي:\n\n"
+                 "```\n"
+                 "اسم المنتج\n"
+                 "السعر\n"
+                 "الفئة (نتفلكس/شاهد/ديزني بلس/اوسن بلس/فديو بريميم/اشتراكات أخرى)\n"
+                 "رابط الصورة\n"
+                 "البيانات المخفية (الايميل والباسورد مثلاً)\n"
+                 "```\n\n"
+                 "**مثال:**\n"
+                 "```\n"
+                 "حساب نتفلكس بريميوم\n"
+                 "25\n"
+                 "نتفلكس\n"
+                 "https://example.com/image.jpg\n"
+                 "البريد: test@gmail.com\n"
+                 "الباسورد: 123456\n"
+                 "```",
+                 parse_mode="Markdown")
+    
+    # تسجيل حالة انتظار بيانات المنتج
+    bot.register_next_step_handler(message, process_new_product)
+
+def process_new_product(message):
+    try:
+        lines = message.text.strip().split('\n')
+        
+        if len(lines) < 5:
+            return bot.reply_to(message, "❌ بيانات غير كاملة! الرجاء إرسال جميع البيانات المطلوبة.")
+        
+        item_name = lines[0].strip()
+        price = lines[1].strip()
+        category = lines[2].strip()
+        image_url = lines[3].strip()
+        hidden_data = '\n'.join(lines[4:]).strip()
+        
+        # التحقق من السعر
+        try:
+            float(price)
+        except:
+            return bot.reply_to(message, "❌ السعر يجب أن يكون رقماً!")
+        
+        # إضافة المنتج
+        item = {
+            'item_name': item_name,
+            'price': price,
+            'seller_id': str(ADMIN_ID),
+            'seller_name': 'المالك',
+            'hidden_data': hidden_data,
+            'category': category,
+            'image_url': image_url
+        }
+        marketplace_items.append(item)
+        
+        bot.reply_to(message,
+                     f"✅ تم إضافة المنتج بنجاح!\n\n"
+                     f"📦 المنتج: {item_name}\n"
+                     f"💰 السعر: {price} ريال\n"
+                     f"🏷️ الفئة: {category}\n"
+                     f"📊 إجمالي المنتجات: {len(marketplace_items)}")
+        
+    except Exception as e:
+        bot.reply_to(message, f"❌ حدث خطأ: {str(e)}")
+
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
     user_id = message.from_user.id
@@ -1557,11 +1629,17 @@ def get_balance_api():
 @app.route('/sell', methods=['POST'])
 def sell_item():
     data = request.json
+    seller_id = str(data.get('seller_id'))
+    
+    # التحقق من أن البائع هو المالك فقط
+    if int(seller_id) != ADMIN_ID:
+        return {'status': 'error', 'message': 'غير مصرح لك بإضافة منتجات! فقط المالك يمكنه ذلك.'}
+    
     # حفظ البيانات المخفية بشكل آمن
     item = {
         'item_name': data.get('item_name'),
         'price': data.get('price'),
-        'seller_id': data.get('seller_id'),
+        'seller_id': seller_id,
         'seller_name': data.get('seller_name'),
         'hidden_data': data.get('hidden_data', ''),  # البيانات المخفية
         'category': data.get('category', ''),  # الفئة
