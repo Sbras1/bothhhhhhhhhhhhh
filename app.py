@@ -422,6 +422,113 @@ HTML_PAGE = """
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
+        /* زر الطلبات */
+        .orders-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 12px;
+            font-family: 'Tajawal', sans-serif;
+            transition: all 0.3s;
+        }
+        .orders-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 92, 231, 0.4);
+        }
+        
+        /* قسم الطلبات */
+        .orders-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--card-bg);
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .orders-section.open {
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        .orders-header {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            padding: 15px 20px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        .orders-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .close-orders {
+            font-size: 24px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+        }
+        .orders-list {
+            padding: 20px;
+        }
+        .order-item {
+            background: rgba(108, 92, 231, 0.1);
+            border: 2px solid rgba(108, 92, 231, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .order-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .order-id {
+            color: #6c5ce7;
+            font-size: 14px;
+        }
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .order-status.pending {
+            background: #f39c12;
+            color: white;
+        }
+        .order-status.completed {
+            background: #27ae60;
+            color: white;
+        }
+        .order-status.claimed {
+            background: #3498db;
+            color: white;
+        }
+        .order-info {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .order-info strong {
+            color: var(--text-color);
+        }
+        
         /* نافذة تسجيل الدخول المنبثقة */
         .login-modal {
             display: none;
@@ -567,7 +674,20 @@ HTML_PAGE = """
                 <span class="account-value"><span id="balance">0</span> ريال</span>
             </div>
             
+            <button class="orders-btn" onclick="toggleOrders()">📦 طلباتي</button>
+            
             <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
+        </div>
+    </div>
+    
+    <!-- قسم الطلبات -->
+    <div class="orders-section" id="ordersSection">
+        <div class="orders-header">
+            <h3>📦 طلباتي</h3>
+            <span class="close-orders" onclick="toggleOrders()">✕</span>
+        </div>
+        <div class="orders-list" id="ordersList">
+            <p style="text-align:center; color:#888;">جاري التحميل...</p>
         </div>
     </div>
 
@@ -762,6 +882,58 @@ HTML_PAGE = """
                 } catch(error) {
                     location.reload();
                 }
+            }
+        }
+        
+        // دالة لفتح/إغلاق قسم الطلبات
+        async function toggleOrders() {
+            const ordersSection = document.getElementById('ordersSection');
+            const isOpen = ordersSection.classList.toggle('open');
+            
+            if(isOpen) {
+                // جلب الطلبات من السيرفر
+                await loadOrders();
+            }
+        }
+        
+        // دالة لجلب وعرض الطلبات
+        async function loadOrders() {
+            const ordersList = document.getElementById('ordersList');
+            ordersList.innerHTML = '<p style="text-align:center; color:#888;">جاري التحميل...</p>';
+            
+            try {
+                const response = await fetch(`/get_orders?user_id=${currentUserId}`);
+                const data = await response.json();
+                
+                if(data.orders && data.orders.length > 0) {
+                    ordersList.innerHTML = '';
+                    data.orders.forEach(order => {
+                        const statusText = order.status === 'pending' ? 'قيد الانتظار' : 
+                                          order.status === 'claimed' ? 'قيد المعالجة' : 'مكتمل';
+                        const statusClass = order.status;
+                        
+                        const orderHTML = `
+                            <div class="order-item">
+                                <div class="order-header">
+                                    <span class="order-id">#${order.order_id}</span>
+                                    <span class="order-status ${statusClass}">${statusText}</span>
+                                </div>
+                                <div class="order-info">
+                                    <div>📦 <strong>المنتج:</strong> ${order.item_name}</div>
+                                    <div>💰 <strong>السعر:</strong> ${order.price} ريال</div>
+                                    ${order.game_id ? `<div>🎮 <strong>معرف اللعبة:</strong> ${order.game_id}</div>` : ''}
+                                    ${order.game_name ? `<div>👤 <strong>اسم اللعبة:</strong> ${order.game_name}</div>` : ''}
+                                    ${order.admin_name ? `<div>👨‍💼 <strong>المشرف:</strong> ${order.admin_name}</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        ordersList.innerHTML += orderHTML;
+                    });
+                } else {
+                    ordersList.innerHTML = '<p style="text-align:center; color:#888;">📭 لا توجد طلبات حتى الآن</p>';
+                }
+            } catch(error) {
+                ordersList.innerHTML = '<p style="text-align:center; color:#e74c3c;">❌ حدث خطأ في تحميل الطلبات</p>';
             }
         }
         
@@ -1262,6 +1434,42 @@ def confirm_transaction(call):
 def logout():
     session.clear()
     return {'success': True}
+
+# مسار جلب طلبات المستخدم
+@app.route('/get_orders')
+def get_user_orders():
+    user_id = str(request.args.get('user_id', '0'))
+    
+    if not user_id or user_id == '0':
+        return {'orders': []}
+    
+    # جلب جميع الطلبات الخاصة بالمستخدم
+    user_orders = []
+    for order_id, order in active_orders.items():
+        if str(order['buyer_id']) == user_id:
+            # إضافة اسم المشرف إذا تم استلام الطلب
+            admin_name = None
+            if order.get('admin_id'):
+                try:
+                    admin_info = bot.get_chat(order['admin_id'])
+                    admin_name = admin_info.first_name
+                except:
+                    admin_name = "مشرف"
+            
+            user_orders.append({
+                'order_id': order_id,
+                'item_name': order['item_name'],
+                'price': order['price'],
+                'game_id': order.get('game_id', ''),
+                'game_name': order.get('game_name', ''),
+                'status': order['status'],
+                'admin_name': admin_name
+            })
+    
+    # ترتيب الطلبات من الأحدث للأقدم
+    user_orders.reverse()
+    
+    return {'orders': user_orders}
 
 # مسار التحقق من الكود وتسجيل الدخول
 @app.route('/verify', methods=['POST'])
