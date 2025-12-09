@@ -729,7 +729,10 @@ HTML_PAGE = """
         </div>
     </div>
 
-    <h3>🛒 السوق</h3>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <h3 style="margin: 0;">🛒 السوق</h3>
+        <span id="categoryFilter" style="color: #6c5ce7; font-size: 14px; font-weight: bold;"></span>
+    </div>
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card">
@@ -942,11 +945,24 @@ HTML_PAGE = """
         let allItems = {{ items|tojson }};
         
         function filterCategory(category) {
+            // تحديث نص الفئة
+            const categoryFilterText = document.getElementById('categoryFilter');
+            if(category === 'all') {
+                categoryFilterText.textContent = '';
+            } else {
+                categoryFilterText.textContent = `- ${category}`;
+            }
+            
             // تصفية وعرض المنتجات
             const market = document.getElementById('market');
             market.innerHTML = '';
             
             const filteredItems = category === 'all' ? allItems : allItems.filter(item => item.category === category);
+            
+            if(filteredItems.length === 0) {
+                market.innerHTML = '<p style="text-align:center; color:#888; grid-column: 1/-1; padding: 40px;">📭 لا توجد منتجات في هذا القسم</p>';
+                return;
+            }
             
             filteredItems.forEach((item, index) => {
                 const isMyProduct = item.seller_id == currentUserId;
@@ -1034,6 +1050,11 @@ HTML_PAGE = """
                 }
             });
         }
+        
+        // تحميل أول قسم (نتفلكس) عند فتح الصفحة
+        window.addEventListener('DOMContentLoaded', function() {
+            filterCategory('نتفلكس');
+        });
     </script>
 </body>
 </html>
