@@ -276,10 +276,11 @@ HTML_PAGE = """
 
         /* الألوان الخلفية (تدرجات خفيفة) */
         .bg-all { background: linear-gradient(180deg, #2d2d2d 0%, #3a2d44 100%); border-bottom: 2px solid #6c5ce7; }
-        .bg-pubg { background: linear-gradient(180deg, #2d2d2d 0%, #3a2a44 100%); border-bottom: 2px solid #f5576c; }
-        .bg-ff { background: linear-gradient(180deg, #2d2d2d 0%, #44352a 100%); border-bottom: 2px solid #f0932b; }
-        .bg-card { background: linear-gradient(180deg, #2d2d2d 0%, #2a3b44 100%); border-bottom: 2px solid #4facfe; }
-        .bg-account { background: linear-gradient(180deg, #2d2d2d 0%, #2a4430 100%); border-bottom: 2px solid #00b894; }
+        .bg-netflix { background: linear-gradient(180deg, #2d2d2d 0%, #3a1a1a 100%); border-bottom: 2px solid #e50914; }
+        .bg-shahid { background: linear-gradient(180deg, #2d2d2d 0%, #2a3a3a 100%); border-bottom: 2px solid #00b8a9; }
+        .bg-disney { background: linear-gradient(180deg, #2d2d2d 0%, #1a2a44 100%); border-bottom: 2px solid #0063e5; }
+        .bg-osn { background: linear-gradient(180deg, #2d2d2d 0%, #3a2a1a 100%); border-bottom: 2px solid #f39c12; }
+        .bg-video { background: linear-gradient(180deg, #2d2d2d 0%, #2a1a3a 100%); border-bottom: 2px solid #9b59b6; }
         .bg-other { background: linear-gradient(180deg, #2d2d2d 0%, #442a2a 100%); border-bottom: 2px solid #e17055; }
 
         /* الأيقونة */
@@ -702,29 +703,34 @@ HTML_PAGE = """
             <div class="cat-title">الكل</div>
         </div>
         
-        <div class="cat-card bg-pubg" onclick="filterCategory('شدات ببجي')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1670/1670921.png" alt="ببجي">
-            <div class="cat-title">ببجي</div>
+        <div class="cat-card bg-netflix" onclick="filterCategory('نتفلكس')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/732/732228.png" alt="نتفلكس">
+            <div class="cat-title">نتفلكس</div>
         </div>
         
-        <div class="cat-card bg-ff" onclick="filterCategory('شدات فري فاير')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/785/785116.png" alt="فري فاير">
-            <div class="cat-title">فري فاير</div>
+        <div class="cat-card bg-shahid" onclick="filterCategory('شاهد')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/3845/3845874.png" alt="شاهد">
+            <div class="cat-title">شاهد</div>
         </div>
 
-        <div class="cat-card bg-card" onclick="filterCategory('بطاقات')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1170/1170576.png" alt="بطاقات">
-            <div class="cat-title">بطاقات</div>
+        <div class="cat-card bg-disney" onclick="filterCategory('ديزني بلس')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/5977/5977590.png" alt="ديزني بلس">
+            <div class="cat-title">ديزني بلس</div>
         </div>
         
-        <div class="cat-card bg-account" onclick="filterCategory('حسابات')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png" alt="حسابات">
-            <div class="cat-title">حسابات</div>
+        <div class="cat-card bg-osn" onclick="filterCategory('اوسن بلس')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/1946/1946488.png" alt="اوسن بلس">
+            <div class="cat-title">اوسن بلس</div>
         </div>
         
-        <div class="cat-card bg-other" onclick="filterCategory('أخرى')">
-            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/2087/2087815.png" alt="أخرى">
-            <div class="cat-title">أخرى</div>
+        <div class="cat-card bg-video" onclick="filterCategory('فديو بريميم')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/3074/3074767.png" alt="فديو بريميم">
+            <div class="cat-title">فديو بريميم</div>
+        </div>
+        
+        <div class="cat-card bg-other" onclick="filterCategory('اشتراكات أخرى')">
+            <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/2087/2087815.png" alt="اشتراكات أخرى">
+            <div class="cat-title">اشتراكات أخرى</div>
         </div>
     </div>
 
