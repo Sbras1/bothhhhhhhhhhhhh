@@ -698,11 +698,6 @@ HTML_PAGE = """
     </div>
 
     <div class="categories-grid">
-        <div class="cat-card bg-all" onclick="filterCategory('all')">
-            <img class="cat-icon" src="https://i.ibb.co/9mXDcKrD/photo-5877268892239989707-x.jpg" alt="الكل">
-            <div class="cat-title">الكل</div>
-        </div>
-        
         <div class="cat-card bg-netflix" onclick="filterCategory('نتفلكس')">
             <img class="cat-icon" src="https://cdn-icons-png.flaticon.com/512/732/732228.png" alt="نتفلكس">
             <div class="cat-title">نتفلكس</div>
