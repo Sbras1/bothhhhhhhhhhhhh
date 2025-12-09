@@ -1215,6 +1215,9 @@ def list_admins_command(message):
     
     bot.reply_to(message, admins_list_text)
 
+# تخزين بيانات المنتج المؤقتة
+temp_product_data = {}
+
 # أمر إضافة منتج (فقط للمالك)
 @bot.message_handler(commands=['add_product'])
 def add_product_command(message):
@@ -1222,70 +1225,169 @@ def add_product_command(message):
     if message.from_user.id != ADMIN_ID:
         return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
     
-    bot.reply_to(message, 
-                 "📦 **إضافة منتج جديد**\n\n"
-                 "أرسل بيانات المنتج بالتنسيق التالي:\n\n"
-                 "```\n"
-                 "اسم المنتج\n"
-                 "السعر\n"
-                 "الفئة (نتفلكس/شاهد/ديزني بلس/اوسن بلس/فديو بريميم/اشتراكات أخرى)\n"
-                 "رابط الصورة\n"
-                 "البيانات المخفية (الايميل والباسورد مثلاً)\n"
-                 "```\n\n"
-                 "**مثال:**\n"
-                 "```\n"
-                 "حساب نتفلكس بريميوم\n"
-                 "25\n"
-                 "نتفلكس\n"
-                 "https://example.com/image.jpg\n"
-                 "البريد: test@gmail.com\n"
-                 "الباسورد: 123456\n"
-                 "```",
-                 parse_mode="Markdown")
+    # بدء عملية إضافة منتج جديد
+    user_id = message.from_user.id
+    temp_product_data[user_id] = {}
     
-    # تسجيل حالة انتظار بيانات المنتج
-    bot.register_next_step_handler(message, process_new_product)
+    msg = bot.reply_to(message, "📦 **إضافة منتج جديد**\n\n📝 أرسل اسم المنتج:", parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_product_name)
 
-def process_new_product(message):
+def process_product_name(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['item_name'] = message.text.strip()
+    bot.reply_to(message, f"✅ تم إضافة الاسم: {message.text.strip()}")
+    
+    msg = bot.send_message(message.chat.id, "💰 أرسل سعر المنتج (بالريال):")
+    bot.register_next_step_handler(msg, process_product_price)
+
+def process_product_price(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    # التحقق من السعر
     try:
-        lines = message.text.strip().split('\n')
+        price = float(message.text.strip())
+        temp_product_data[user_id]['price'] = str(price)
+        bot.reply_to(message, f"✅ تم إضافة السعر: {price} ريال")
         
-        if len(lines) < 5:
-            return bot.reply_to(message, "❌ بيانات غير كاملة! الرجاء إرسال جميع البيانات المطلوبة.")
+        # إرسال أزرار الفئات
+        markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+        markup.add(
+            types.KeyboardButton("نتفلكس"),
+            types.KeyboardButton("شاهد"),
+            types.KeyboardButton("ديزني بلس"),
+            types.KeyboardButton("اوسن بلس"),
+            types.KeyboardButton("فديو بريميم"),
+            types.KeyboardButton("اشتراكات أخرى")
+        )
         
-        item_name = lines[0].strip()
-        price = lines[1].strip()
-        category = lines[2].strip()
-        image_url = lines[3].strip()
-        hidden_data = '\n'.join(lines[4:]).strip()
+        msg = bot.send_message(message.chat.id, "🏷️ اختر فئة المنتج:", reply_markup=markup)
+        bot.register_next_step_handler(msg, process_product_category)
         
-        # التحقق من السعر
-        try:
-            float(price)
-        except:
-            return bot.reply_to(message, "❌ السعر يجب أن يكون رقماً!")
+    except ValueError:
+        msg = bot.reply_to(message, "❌ السعر يجب أن يكون رقماً! أرسل السعر مرة أخرى:")
+        bot.register_next_step_handler(msg, process_product_price)
+
+def process_product_category(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+    
+    valid_categories = ["نتفلكس", "شاهد", "ديزني بلس", "اوسن بلس", "فديو بريميم", "اشتراكات أخرى"]
+    
+    if message.text.strip() not in valid_categories:
+        markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+        markup.add(
+            types.KeyboardButton("نتفلكس"),
+            types.KeyboardButton("شاهد"),
+            types.KeyboardButton("ديزني بلس"),
+            types.KeyboardButton("اوسن بلس"),
+            types.KeyboardButton("فديو بريميم"),
+            types.KeyboardButton("اشتراكات أخرى")
+        )
+        msg = bot.reply_to(message, "❌ فئة غير صحيحة! اختر من الأزرار:", reply_markup=markup)
+        return bot.register_next_step_handler(msg, process_product_category)
+    
+    temp_product_data[user_id]['category'] = message.text.strip()
+    bot.reply_to(message, f"✅ تم اختيار الفئة: {message.text.strip()}", reply_markup=types.ReplyKeyboardRemove())
+    
+    markup = types.ReplyKeyboardMarkup(row_width=1, one_time_keyboard=True, resize_keyboard=True)
+    markup.add(types.KeyboardButton("تخطي"))
+    
+    msg = bot.send_message(message.chat.id, "🖼️ أرسل رابط صورة المنتج (أو اضغط تخطي):", reply_markup=markup)
+    bot.register_next_step_handler(msg, process_product_image)
+
+def process_product_image(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+    
+    if message.text.strip() == "تخطي":
+        temp_product_data[user_id]['image_url'] = "https://via.placeholder.com/300x200?text=No+Image"
+        bot.reply_to(message, "⏭️ تم تخطي الصورة", reply_markup=types.ReplyKeyboardRemove())
+    else:
+        temp_product_data[user_id]['image_url'] = message.text.strip()
+        bot.reply_to(message, "✅ تم إضافة رابط الصورة", reply_markup=types.ReplyKeyboardRemove())
+    
+    msg = bot.send_message(message.chat.id, "🔐 أرسل البيانات المخفية (الايميل والباسورد مثلاً):")
+    bot.register_next_step_handler(msg, process_product_hidden_data)
+
+def process_product_hidden_data(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['hidden_data'] = message.text.strip()
+    bot.reply_to(message, "✅ تم إضافة البيانات المخفية")
+    
+    # عرض ملخص المنتج
+    product = temp_product_data[user_id]
+    summary = (
+        "📦 **ملخص المنتج:**\n\n"
+        f"📝 الاسم: {product['item_name']}\n"
+        f"💰 السعر: {product['price']} ريال\n"
+        f"🏷️ الفئة: {product['category']}\n"
+        f"🖼️ الصورة: {product['image_url']}\n"
+        f"🔐 البيانات: {product['hidden_data']}\n\n"
+        "هل تريد إضافة هذا المنتج؟"
+    )
+    
+    markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+    markup.add(
+        types.KeyboardButton("✅ موافق"),
+        types.KeyboardButton("❌ إلغاء")
+    )
+    
+    msg = bot.send_message(message.chat.id, summary, parse_mode="Markdown", reply_markup=markup)
+    bot.register_next_step_handler(msg, confirm_add_product)
+
+def confirm_add_product(message):
+    user_id = message.from_user.id
+    
+    if message.text == "✅ موافق":
+        product = temp_product_data.get(user_id)
         
-        # إضافة المنتج
-        item = {
-            'item_name': item_name,
-            'price': price,
-            'seller_id': str(ADMIN_ID),
-            'seller_name': 'المالك',
-            'hidden_data': hidden_data,
-            'category': category,
-            'image_url': image_url
-        }
-        marketplace_items.append(item)
+        if product:
+            # إضافة المنتج
+            item = {
+                'item_name': product['item_name'],
+                'price': product['price'],
+                'seller_id': str(ADMIN_ID),
+                'seller_name': 'المالك',
+                'hidden_data': product['hidden_data'],
+                'category': product['category'],
+                'image_url': product['image_url']
+            }
+            marketplace_items.append(item)
+            
+            bot.reply_to(message,
+                         f"✅ **تم إضافة المنتج بنجاح!**\n\n"
+                         f"📦 المنتج: {product['item_name']}\n"
+                         f"💰 السعر: {product['price']} ريال\n"
+                         f"🏷️ الفئة: {product['category']}\n"
+                         f"📊 إجمالي المنتجات: {len(marketplace_items)}",
+                         parse_mode="Markdown",
+                         reply_markup=types.ReplyKeyboardRemove())
         
-        bot.reply_to(message,
-                     f"✅ تم إضافة المنتج بنجاح!\n\n"
-                     f"📦 المنتج: {item_name}\n"
-                     f"💰 السعر: {price} ريال\n"
-                     f"🏷️ الفئة: {category}\n"
-                     f"📊 إجمالي المنتجات: {len(marketplace_items)}")
-        
-    except Exception as e:
-        bot.reply_to(message, f"❌ حدث خطأ: {str(e)}")
+        # حذف البيانات المؤقتة
+        temp_product_data.pop(user_id, None)
+    else:
+        bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+        temp_product_data.pop(user_id, None)
 
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
