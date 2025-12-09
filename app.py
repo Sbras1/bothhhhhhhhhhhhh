@@ -402,20 +402,6 @@ HTML_PAGE = """
             color: #00b894;
             font-size: 22px;
         }
-        .add-item-section {
-            background: linear-gradient(135deg, #00b894, #00cec9);
-            padding: 15px;
-            border-radius: 12px;
-            margin-top: 15px;
-            cursor: pointer;
-            text-align: center;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .add-item-section:hover {
-            transform: scale(1.02);
-            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
-        }
         
         .logout-btn {
             width: 100%;
@@ -434,16 +420,6 @@ HTML_PAGE = """
         .logout-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-        
-        /* قسم إضافة سلعة */
-        .sell-section {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        .sell-section.open {
-            max-height: 600px;
         }
         
         /* نافذة تسجيل الدخول المنبثقة */
@@ -591,23 +567,7 @@ HTML_PAGE = """
                 <span class="account-value"><span id="balance">0</span> ريال</span>
             </div>
             
-            <div class="add-item-section" onclick="toggleSellSection()">
-                ➕ أضف سلعة للبيع
-            </div>
-            
             <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
-        </div>
-    </div>
-    
-    <!-- قسم إضافة سلعة -->
-    <div class="sell-section" id="sellSection">
-        <div class="card">
-            <h3>➕ بيع سلعة</h3>
-            <input type="text" id="itemInput" placeholder="اسم السلعة">
-            <input type="text" id="categoryInput" placeholder="الفئة (مثال: شدات ببجي، شدات فري فاير)">
-            <input type="url" id="imageInput" placeholder="رابط صورة السلعة (اختياري)">
-            <input type="number" id="priceInput" placeholder="السعر">
-            <button onclick="sellItem()">نشر في السوق</button>
         </div>
     </div>
 
@@ -805,52 +765,6 @@ HTML_PAGE = """
             }
         }
         
-        // دالة لفتح/إغلاق قسم إضافة سلعة
-        function toggleSellSection() {
-            const section = document.getElementById("sellSection");
-            section.classList.toggle("open");
-        }
-
-        function sellItem() {
-            let name = document.getElementById("itemInput").value;
-            let category = document.getElementById("categoryInput").value;
-            let imageUrl = document.getElementById("imageInput").value;
-            let price = document.getElementById("priceInput").value;
-            
-            if(!name || !price) {
-                alert("الرجاء إدخال اسم السلعة والسعر!");
-                return;
-            }
-
-            // تحديد اسم البائع والآيدي
-            let sellerName = '{{ user_name }}';
-            let sellerId = currentUserId;
-            
-            if(user && user.id) {
-                sellerName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                sellerId = user.id;
-            }
-            
-            if(!sellerId || sellerId == 0) {
-                alert("الرجاء تسجيل الدخول أولاً!");
-                return;
-            }
-
-            fetch('/sell', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    seller_name: sellerName,
-                    seller_id: sellerId,
-                    item_name: name,
-                    category: category.trim(),
-                    image_url: imageUrl.trim(),
-                    price: price,
-                    hidden_data: ''
-                })
-            }).then(() => location.reload());
-        }
-
         // تصفية المنتجات حسب الفئة
         let allItems = {{ items|tojson }};
         
