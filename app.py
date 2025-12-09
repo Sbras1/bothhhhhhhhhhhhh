@@ -997,21 +997,8 @@ HTML_PAGE = """
                 return;
             }
 
-            // طلب بيانات الطلب من المشتري
-            const gameId = prompt("أدخل آيدي اللعبة الخاص بك:");
-            if(!gameId || gameId.trim() === '') {
-                alert("يجب إدخال آيدي اللعبة!");
-                return;
-            }
-
-            const gameName = prompt("أدخل اسمك في اللعبة:");
-            if(!gameName || gameName.trim() === '') {
-                alert("يجب إدخال الاسم في اللعبة!");
-                return;
-            }
-
-            // تأكيد الطلب
-            const confirmMsg = `هل تريد شراء: ${itemName}\nالسعر: ${price} ريال\n\nآيدي اللعبة: ${gameId}\nالاسم: ${gameName}\n\nسيتم خصم المبلغ وحجزه حتى تستلم الخدمة.`;
+            // تأكيد الشراء المباشر
+            const confirmMsg = `هل تريد شراء: ${itemName}\nالسعر: ${price} ريال\n\n✅ سيتم تسليم الحساب فوراً!`;
             
             if(!confirm(confirmMsg)) {
                 return;
@@ -1037,13 +1024,11 @@ HTML_PAGE = """
                 body: JSON.stringify({
                     buyer_id: buyerId,
                     buyer_name: buyerName,
-                    item_index: itemIndex,
-                    game_id: gameId.trim(),
-                    game_name: gameName.trim()
+                    item_index: itemIndex
                 })
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
-                    alert('✅ تم إرسال طلبك بنجاح! سيتواصل معك البائع قريباً.');
+                    alert('✅ تم الشراء بنجاح! تحقق من رسائل البوت لاستلام البيانات.');
                     location.reload();
                 } else {
                     alert('❌ ' + data.message);
@@ -1756,8 +1741,6 @@ def buy_item():
     buyer_id = str(data.get('buyer_id'))
     buyer_name = data.get('buyer_name')
     item_index = int(data.get('item_index'))
-    game_id = data.get('game_id')
-    game_name = data.get('game_name')
     
     if item_index >= len(marketplace_items):
         return {'status': 'error', 'message': 'المنتج غير موجود'}
@@ -1770,76 +1753,71 @@ def buy_item():
     if buyer_balance < price:
         return {'status': 'error', 'message': 'الرصيد غير كافي'}
     
-    # 2. خصم الرصيد (تجميده)
+    # 2. خصم الرصيد
     users_wallets[buyer_id] -= price
     
-    # 3. إنشاء معرف فريد للطلب
+    # 3. تحويل المال للبائع فوراً
+    add_balance(item['seller_id'], price)
+    
+    # 4. إنشاء معرف فريد للطلب
     order_id = f"ORD_{random.randint(100000, 999999)}"
     
-    # 4. حفظ الطلب في قائمة الطلبات النشطة
+    # 5. حفظ الطلب في قائمة الطلبات (للسجل فقط)
     active_orders[order_id] = {
         'buyer_id': buyer_id,
         'buyer_name': buyer_name,
         'item_name': item['item_name'],
         'price': price,
-        'game_id': game_id,
-        'game_name': game_name,
         'hidden_data': item.get('hidden_data', ''),
         'seller_id': item['seller_id'],
         'seller_name': item['seller_name'],
-        'status': 'pending',  # pending, claimed, completed
-        'admin_id': None,
+        'status': 'completed',
+        'admin_id': str(ADMIN_ID),
         'message_id': None
     }
     
-    # 5. إرسال إشعار لجميع المشرفين في الخاص
-    markup = types.InlineKeyboardMarkup()
-    claim_btn = types.InlineKeyboardButton("✋ أنا بستلم الطلب", callback_data=f"claim_{order_id}")
-    markup.add(claim_btn)
+    # 6. إرسال البيانات المخفية للمشتري فوراً
+    hidden_info = item.get('hidden_data', 'لا توجد بيانات إضافية')
     
-    notification_text = (
-        f"🔔 طلب جديد #{order_id}\n\n"
-        f"📦 المنتج: {item['item_name']}\n"
-        f"💰 السعر: {price} ريال\n\n"
-        f"🔒 بيانات العميل: محمية 🔐\n"
-        f"🔒 بيانات الطلب: محمية 🔐\n"
-        f"🔒 البيانات المخفية: {'محمية 🔐' if item.get('hidden_data') else 'لا يوجد'}\n\n"
-        f"⚡ اضغط الزر لاستلام الطلب ورؤية البيانات!"
-    )
-    
-    # إرسال لكل مشرف في القائمة
-    sent_count = 0
-    for admin_id in admins_database:
-        try:
-            msg = bot.send_message(admin_id, notification_text, reply_markup=markup)
-            # حفظ معرف الرسالة لكل مشرف
-            if 'admin_messages' not in active_orders[order_id]:
-                active_orders[order_id]['admin_messages'] = {}
-            active_orders[order_id]['admin_messages'][admin_id] = msg.message_id
-            sent_count += 1
-        except Exception as e:
-            print(f"فشل إرسال للمشرف {admin_id}: {str(e)}")
-            continue
-    
-    # التحقق من أنه تم الإرسال لمشرف واحد على الأقل
-    if sent_count == 0:
-        # في حالة فشل الإرسال لجميع المشرفين، نرجع المبلغ
-        users_wallets[buyer_id] += price
-        del active_orders[order_id]
-        return {'status': 'error', 'message': 'عذراً، جميع المشرفين غير متاحين حالياً. تم إرجاع المبلغ.'}
-    
-    # 6. إشعار للمشتري
     bot.send_message(
         buyer_id,
-        f"✅ تم استلام طلبك بنجاح!\n\n"
+        f"✅ **تم الشراء بنجاح!**\n\n"
         f"📦 المنتج: {item['item_name']}\n"
-        f"💰 المبلغ المخصوم: {price} ريال\n\n"
-        f"🎮 بياناتك:\n"
-        f"• آيدي اللعبة: {game_id}\n"
-        f"• الاسم: {game_name}\n\n"
-        f"⏳ جاري تحويل طلبك لأحد المشرفين...\n"
-        f"سيتم التواصل معك قريباً! ❄️"
+        f"💰 المبلغ المدفوع: {price} ريال\n"
+        f"🆔 رقم الطلب: #{order_id}\n\n"
+        f"🔐 **بيانات الحساب:**\n"
+        f"{hidden_info}\n\n"
+        f"✨ استمتع بخدمتك!\n"
+        f"شكراً لاستخدامك متجرنا 🎉",
+        parse_mode="Markdown"
     )
+    
+    # 7. إشعار للبائع
+    bot.send_message(
+        item['seller_id'],
+        f"💰 **تم بيع منتجك!**\n\n"
+        f"📦 المنتج: {item['item_name']}\n"
+        f"💵 المبلغ: {price} ريال\n"
+        f"👤 المشتري: {buyer_name}\n"
+        f"🆔 رقم الطلب: #{order_id}\n\n"
+        f"✅ تم إضافة المبلغ لرصيدك!",
+        parse_mode="Markdown"
+    )
+    
+    # 8. إشعار للمالك
+    try:
+        bot.send_message(
+            ADMIN_ID,
+            f"🔔 **عملية شراء جديدة**\n\n"
+            f"📦 المنتج: {item['item_name']}\n"
+            f"💰 السعر: {price} ريال\n"
+            f"👤 المشتري: {buyer_name}\n"
+            f"🆔 رقم الطلب: #{order_id}\n\n"
+            f"✅ تم التسليم الفوري",
+            parse_mode="Markdown"
+        )
+    except:
+        pass
 
     return {'status': 'success'}
 
