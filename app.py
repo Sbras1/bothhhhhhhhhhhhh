@@ -244,6 +244,46 @@ HTML_PAGE = """
             font-weight: bold;
         }
         
+        /* المنتجات المباعة */
+        .sold-product {
+            opacity: 0.7;
+            position: relative;
+        }
+        .sold-product .product-image::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+        }
+        .sold-ribbon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 10px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.6);
+            border: 3px solid white;
+            letter-spacing: 2px;
+        }
+        .sold-info {
+            color: #e74c3c;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 8px 0;
+            padding: 6px 10px;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 8px;
+            border-left: 3px solid #e74c3c;
+        }
+        
         /* حاوية الفئات - الشبكة */
         .categories-grid {
             display: grid;
@@ -735,7 +775,10 @@ HTML_PAGE = """
     </div>
     <div id="market" class="product-grid">
         {% for item in items %}
-        <div class="product-card">
+        <div class="product-card {% if item.get('sold') %}sold-product{% endif %}">
+            {% if item.get('sold') %}
+            <div class="sold-ribbon">مباع ✓</div>
+            {% endif %}
             <div class="product-image">
                 {% if item.get('image_url') %}
                 <img src="{{ item.image_url }}" alt="{{ item.item_name }}">
@@ -752,9 +795,14 @@ HTML_PAGE = """
                 {% endif %}
                 <div class="product-name">{{ item.item_name }}</div>
                 <div class="product-seller">🏪 {{ item.seller_name }}</div>
+                {% if item.get('sold') and item.get('buyer_name') %}
+                <div class="sold-info">🎉 تم شراءه بواسطة: {{ item.buyer_name }}</div>
+                {% endif %}
                 <div class="product-footer">
                     <div class="product-price">{{ item.price }} ريال</div>
-                    {% if item.seller_id|string != current_user_id|string %}
+                    {% if item.get('sold') %}
+                        <button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>
+                    {% elif item.seller_id|string != current_user_id|string %}
                         <button class="product-buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}')">شراء 🛒</button>
                     {% else %}
                         <div class="my-product-badge">منتجك ⭐</div>
@@ -957,7 +1005,14 @@ HTML_PAGE = """
             const market = document.getElementById('market');
             market.innerHTML = '';
             
-            const filteredItems = category === 'all' ? allItems : allItems.filter(item => item.category === category);
+            let filteredItems = category === 'all' ? allItems : allItems.filter(item => item.category === category);
+            
+            // ترتيب المنتجات: المتاحة أولاً، ثم المباعة
+            filteredItems.sort((a, b) => {
+                if(a.sold && !b.sold) return 1;
+                if(!a.sold && b.sold) return -1;
+                return 0;
+            });
             
             if(filteredItems.length === 0) {
                 market.innerHTML = '<p style="text-align:center; color:#888; grid-column: 1/-1; padding: 40px;">📭 لا توجد منتجات في هذا القسم</p>';
@@ -966,8 +1021,10 @@ HTML_PAGE = """
             
             filteredItems.forEach((item, index) => {
                 const isMyProduct = item.seller_id == currentUserId;
+                const isSold = item.sold === true;
                 const productHTML = `
-                    <div class="product-card">
+                    <div class="product-card ${isSold ? 'sold-product' : ''}">
+                        ${isSold ? '<div class="sold-ribbon">مباع ✓</div>' : ''}
                         <div class="product-image">
                             ${item.image_url ? `<img src="${item.image_url}" alt="${item.item_name}">` : '🎁'}
                         </div>
@@ -976,11 +1033,14 @@ HTML_PAGE = """
                             ${item.category ? `<span class="product-category">${item.category}</span>` : ''}
                             <div class="product-name">${item.item_name}</div>
                             <div class="product-seller">🏪 ${item.seller_name}</div>
+                            ${isSold && item.buyer_name ? `<div class="sold-info">🎉 تم شراءه بواسطة: ${item.buyer_name}</div>` : ''}
                             <div class="product-footer">
                                 <div class="product-price">${item.price} ريال</div>
-                                ${!isMyProduct ? 
-                                    `<button class="product-buy-btn" onclick="buyItem('${allItems.indexOf(item)}', '${item.price}', '${item.item_name}')">شراء 🛒</button>` : 
-                                    `<div class="my-product-badge">منتجك ⭐</div>`
+                                ${isSold ? 
+                                    `<button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>` :
+                                    (!isMyProduct ? 
+                                        `<button class="product-buy-btn" onclick="buyItem('${allItems.indexOf(item)}', '${item.price}', '${item.item_name}')">شراء 🛒</button>` : 
+                                        `<div class="my-product-badge">منتجك ⭐</div>`)
                                 }
                             </div>
                         </div>
@@ -1746,6 +1806,11 @@ def buy_item():
         return {'status': 'error', 'message': 'المنتج غير موجود'}
     
     item = marketplace_items[item_index]
+    
+    # التحقق من أن المنتج لم يُباع بعد
+    if item.get('sold', False):
+        return {'status': 'error', 'message': 'هذا المنتج مباع بالفعل! 🚫'}
+    
     price = float(item['price'])
     
     # 1. التحقق من الرصيد
@@ -1776,8 +1841,9 @@ def buy_item():
         'message_id': None
     }
     
-    # 6. حذف المنتج من السوق (تم بيعه)
-    marketplace_items.pop(item_index)
+    # 6. تحديد المنتج كمباع
+    marketplace_items[item_index]['sold'] = True
+    marketplace_items[item_index]['buyer_name'] = buyer_name
     
     # 7. إرسال البيانات المخفية للمشتري فوراً
     hidden_info = item.get('hidden_data', 'لا توجد بيانات إضافية')
