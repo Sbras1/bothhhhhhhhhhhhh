@@ -56,6 +56,10 @@ transactions = {}
 # الشكل: { user_id: {code, name, created_at} }
 verification_codes = {}
 
+# مفاتيح الشحن المولدة
+# الشكل: { key_code: {amount, used, used_by, created_at} }
+charge_keys = {}
+
 # --- دوال مساعدة ---
 def get_balance(user_id):
     return users_wallets.get(str(user_id), 0.0)
@@ -1473,6 +1477,160 @@ def add_funds(message):
         bot.send_message(target_id, f"🎉 تم شحن رصيدك بمبلغ {amount} ريال!")
     except:
         bot.reply_to(message, "خطأ! الاستخدام: /add ID AMOUNT")
+
+# أمر توليد مفاتيح الشحن
+# الاستخدام: /توليد AMOUNT [COUNT]
+# مثال: /توليد 50 10  (توليد 10 مفاتيح بقيمة 50 ريال لكل منها)
+@bot.message_handler(commands=['توليد'])
+def generate_keys(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
+    
+    try:
+        parts = message.text.split()
+        amount = float(parts[1])
+        count = int(parts[2]) if len(parts) > 2 else 1
+        
+        # التحقق من الحدود
+        if count > 100:
+            return bot.reply_to(message, "❌ الحد الأقصى 100 مفتاح في المرة الواحدة!")
+        
+        if amount <= 0:
+            return bot.reply_to(message, "❌ المبلغ يجب أن يكون أكبر من صفر!")
+        
+        # توليد المفاتيح
+        generated_keys = []
+        for i in range(count):
+            # توليد مفتاح عشوائي
+            key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
+            
+            # حفظ المفتاح في قاعدة البيانات
+            charge_keys[key_code] = {
+                'amount': amount,
+                'used': False,
+                'used_by': None,
+                'created_at': time.time()
+            }
+            generated_keys.append(key_code)
+        
+        # إرسال المفاتيح
+        if count == 1:
+            response = (
+                f"🎁 **تم توليد المفتاح بنجاح!**\n\n"
+                f"💰 القيمة: {amount} ريال\n"
+                f"🔑 المفتاح:\n"
+                f"`{generated_keys[0]}`\n\n"
+                f"📝 يمكن للمستخدم شحنه بإرسال: /شحن {generated_keys[0]}"
+            )
+        else:
+            keys_text = "\n".join([f"`{key}`" for key in generated_keys])
+            response = (
+                f"🎁 **تم توليد {count} مفتاح بنجاح!**\n\n"
+                f"💰 قيمة كل مفتاح: {amount} ريال\n"
+                f"💵 المجموع الكلي: {amount * count} ريال\n\n"
+                f"🔑 المفاتيح:\n{keys_text}\n\n"
+                f"📝 الاستخدام: /شحن [المفتاح]"
+            )
+        
+        bot.reply_to(message, response, parse_mode="Markdown")
+        
+    except IndexError:
+        bot.reply_to(message, 
+                     "❌ **خطأ في الاستخدام!**\n\n"
+                     "📝 الصيغة الصحيحة:\n"
+                     "`/توليد [المبلغ] [العدد]`\n\n"
+                     "**أمثلة:**\n"
+                     "• `/توليد 50` - مفتاح واحد بقيمة 50 ريال\n"
+                     "• `/توليد 100 5` - 5 مفاتيح بقيمة 100 ريال لكل منها\n"
+                     "• `/توليد 25 10` - 10 مفاتيح بقيمة 25 ريال لكل منها",
+                     parse_mode="Markdown")
+    except ValueError:
+        bot.reply_to(message, "❌ الرجاء إدخال أرقام صحيحة!")
+
+# أمر شحن الرصيد بالمفتاح
+@bot.message_handler(commands=['شحن'])
+def charge_with_key(message):
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            return bot.reply_to(message,
+                              "❌ **خطأ في الاستخدام!**\n\n"
+                              "📝 الصيغة الصحيحة:\n"
+                              "`/شحن [المفتاح]`\n\n"
+                              "**مثال:**\n"
+                              "`/شحن KEY-12345-6789`",
+                              parse_mode="Markdown")
+        
+        key_code = parts[1].strip()
+        user_id = str(message.from_user.id)
+        user_name = message.from_user.first_name
+        
+        # التحقق من وجود المفتاح
+        if key_code not in charge_keys:
+            return bot.reply_to(message, "❌ المفتاح غير صحيح أو منتهي الصلاحية!")
+        
+        key_data = charge_keys[key_code]
+        
+        # التحقق من استخدام المفتاح
+        if key_data['used']:
+            return bot.reply_to(message, 
+                              f"❌ هذا المفتاح تم استخدامه بالفعل!\n\n"
+                              f"👤 استخدمه: {key_data.get('used_by', 'مستخدم')}")
+        
+        # شحن الرصيد
+        amount = key_data['amount']
+        add_balance(user_id, amount)
+        
+        # تحديث حالة المفتاح
+        charge_keys[key_code]['used'] = True
+        charge_keys[key_code]['used_by'] = user_name
+        charge_keys[key_code]['used_at'] = time.time()
+        
+        # إرسال رسالة نجاح
+        bot.reply_to(message,
+                    f"✅ **تم شحن رصيدك بنجاح!**\n\n"
+                    f"💰 المبلغ المضاف: {amount} ريال\n"
+                    f"💵 رصيدك الحالي: {get_balance(user_id)} ريال\n\n"
+                    f"🎉 استمتع بالتسوق!",
+                    parse_mode="Markdown")
+        
+        # إشعار المالك
+        try:
+            bot.send_message(ADMIN_ID,
+                           f"🔔 **تم استخدام مفتاح شحن**\n\n"
+                           f"👤 المستخدم: {user_name}\n"
+                           f"🆔 الآيدي: {user_id}\n"
+                           f"💰 المبلغ: {amount} ريال\n"
+                           f"🔑 المفتاح: `{key_code}`",
+                           parse_mode="Markdown")
+        except:
+            pass
+            
+    except Exception as e:
+        bot.reply_to(message, f"❌ حدث خطأ: {str(e)}")
+
+# أمر عرض المفاتيح النشطة (للمالك فقط)
+@bot.message_handler(commands=['المفاتيح'])
+def list_keys(message):
+    if message.from_user.id != ADMIN_ID:
+        return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
+    
+    active_keys = [k for k, v in charge_keys.items() if not v['used']]
+    used_keys = [k for k, v in charge_keys.items() if v['used']]
+    
+    if not charge_keys:
+        return bot.reply_to(message, "📭 لا توجد مفاتيح محفوظة!")
+    
+    response = f"📊 **إحصائيات المفاتيح**\n\n"
+    response += f"✅ مفاتيح نشطة: {len(active_keys)}\n"
+    response += f"🚫 مفاتيح مستخدمة: {len(used_keys)}\n"
+    response += f"📈 الإجمالي: {len(charge_keys)}\n\n"
+    
+    if active_keys:
+        total_value = sum([charge_keys[k]['amount'] for k in active_keys])
+        response += f"💰 القيمة الإجمالية للمفاتيح النشطة: {total_value} ريال"
+    
+    bot.reply_to(message, response, parse_mode="Markdown")
 
 @bot.message_handler(commands=['web'])
 def open_web_app(message):
