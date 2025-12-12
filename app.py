@@ -439,53 +439,107 @@ HTML_PAGE = """
         
         /* نافذة التحذير */
         .warning-modal .modal-header {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            padding: 25px;
         }
         .warning-icon {
-            font-size: 80px;
+            font-size: 70px;
             text-align: center;
-            margin: 20px 0;
-            animation: shake 0.5s;
+            margin: 15px 0 20px 0;
+            animation: bounce 0.6s ease-in-out;
+            filter: drop-shadow(0 5px 15px rgba(255, 107, 107, 0.3));
         }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
         .warning-message {
             text-align: center;
-            font-size: 18px;
+            font-size: 17px;
             color: var(--text-color);
-            margin: 20px 0;
-            line-height: 1.6;
+            margin: 0 0 25px 0;
+            line-height: 1.5;
+            font-weight: 500;
         }
-        .warning-balance {
-            background: rgba(231, 76, 60, 0.1);
-            padding: 15px;
-            border-radius: 10px;
+        .balance-comparison {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        .balance-box {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
-            margin: 20px 0;
-            border: 2px solid #e74c3c;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
         }
-        .warning-balance-label {
-            color: #888;
-            font-size: 14px;
-            margin-bottom: 5px;
+        .balance-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
         }
-        .warning-balance-value {
-            font-size: 32px;
+        .balance-box.current::before {
+            background: linear-gradient(90deg, #a29bfe, #6c5ce7);
+        }
+        .balance-label {
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .balance-value {
+            font-size: 36px;
             font-weight: bold;
-            color: #e74c3c;
+            color: #ff6b6b;
+            margin: 10px 0;
+            text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
         }
-        .warning-note {
-            background: rgba(241, 196, 15, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            color: #f39c12;
+        .balance-box.current .balance-value {
+            color: #a29bfe;
+            text-shadow: 0 2px 10px rgba(162, 155, 254, 0.3);
+        }
+        .balance-currency {
             font-size: 14px;
-            border: 2px dashed #f39c12;
-            margin: 20px 0;
+            color: #666;
+            font-weight: normal;
+        }
+        .warning-actions {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 25px 0 0 0;
+            border: 2px solid rgba(255, 193, 7, 0.3);
+        }
+        .warning-actions h4 {
+            color: #ffc107;
+            font-size: 16px;
+            margin: 0 0 15px 0;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+        .action-icon {
+            font-size: 20px;
+            min-width: 30px;
+            text-align: center;
         }
         
         /* حاوية الفئات - الشبكة */
@@ -1042,25 +1096,30 @@ HTML_PAGE = """
                 <h2>⚠️ رصيد غير كافٍ</h2>
             </div>
             <div class="modal-body">
-                <div class="warning-icon">💰</div>
+                <div class="warning-icon">�</div>
                 <div class="warning-message">
-                    عذراً! رصيدك الحالي غير كافٍ لإتمام عملية الشراء
+                    عذراً، رصيدك الحالي غير كافٍ لإتمام عملية الشراء
                 </div>
-                <div class="warning-balance">
-                    <div class="warning-balance-label">رصيدك الحالي</div>
-                    <div class="warning-balance-value" id="warningBalance">0</div>
-                    <div style="font-size: 14px; color: #888; margin-top: 5px;">ريال</div>
+                <div class="balance-comparison">
+                    <div class="balance-box current">
+                        <div class="balance-label">رصيدك الحالي</div>
+                        <div class="balance-value"><span id="warningBalance">0.00</span> <span class="balance-currency">ريال</span></div>
+                    </div>
+                    <div class="balance-box">
+                        <div class="balance-label">المطلوب</div>
+                        <div class="balance-value"><span id="warningPrice">0.00</span> <span class="balance-currency">ريال</span></div>
+                    </div>
                 </div>
-                <div class="warning-balance">
-                    <div class="warning-balance-label">سعر المنتج</div>
-                    <div class="warning-balance-value" id="warningPrice">0</div>
-                    <div style="font-size: 14px; color: #888; margin-top: 5px;">ريال</div>
-                </div>
-                <div class="warning-note">
-                    💳 قم بشحن محفظتك أولاً عن طريق:<br>
-                    1️⃣ التواصل مع الإدارة<br>
-                    2️⃣ استخدام مفتاح شحن: /شحن<br>
-                    3️⃣ طلب شحن من المالك
+                <div class="warning-actions">
+                    <h4>💡 كيفية الشحن</h4>
+                    <div class="action-item">
+                        <div class="action-icon">👤</div>
+                        <div>التواصل مع الإدارة لشحن الرصيد</div>
+                    </div>
+                    <div class="action-item">
+                        <div class="action-icon">🔑</div>
+                        <div>استخدام مفتاح شحن عبر الأمر /شحن</div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
