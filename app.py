@@ -2594,7 +2594,49 @@ def dashboard():
             </div>
             
             <div class="section">
-                <h2>🛠️ أدوات سريعة</h2>
+                <h2>� إضافة منتج جديد</h2>
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">📝 اسم المنتج</label>
+                            <input type="text" id="productName" placeholder="مثال: حساب نتفلكس بريميوم" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">💰 السعر (ريال)</label>
+                            <input type="number" id="productPrice" placeholder="25" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🏷️ الفئة</label>
+                        <select id="productCategory" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                            <option value="نتفلكس">نتفلكس</option>
+                            <option value="شاهد">شاهد</option>
+                            <option value="ديزني بلس">ديزني بلس</option>
+                            <option value="اوسن بلس">اوسن بلس</option>
+                            <option value="فديو بريميم">فديو بريميم</option>
+                            <option value="اشتراكات أخرى">اشتراكات أخرى</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">📋 التفاصيل</label>
+                        <textarea id="productDetails" placeholder="مثال: ✅ اشتراك شهر كامل&#10;✅ 4 شاشات UHD&#10;✅ بدون إعلانات" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; min-height: 100px; resize: vertical;"></textarea>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🖼️ رابط الصورة (اختياري)</label>
+                        <input type="url" id="productImage" placeholder="https://example.com/image.jpg" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🔐 البيانات المخفية (الايميل والباسورد)</label>
+                        <textarea id="productHiddenData" placeholder="البريد: test@gmail.com&#10;الباسورد: 123456" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
+                    </div>
+                    <button onclick="addProduct()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                        ➕ إضافة المنتج
+                    </button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>�🛠️ أدوات سريعة</h2>
                 <div class="tools">
                     <div class="tool-box">
                         <h3>💳 شحن رصيد مستخدم</h3>
@@ -2706,6 +2748,42 @@ def dashboard():
                 }});
             }}
             
+            function addProduct() {{
+                const name = document.getElementById('productName').value;
+                const price = document.getElementById('productPrice').value;
+                const category = document.getElementById('productCategory').value;
+                const details = document.getElementById('productDetails').value;
+                const image = document.getElementById('productImage').value;
+                const hiddenData = document.getElementById('productHiddenData').value;
+                
+                if(!name || !price || !hiddenData) {{
+                    alert('الرجاء ملء الحقول المطلوبة (الاسم، السعر، البيانات المخفية)!');
+                    return;
+                }}
+                
+                fetch('/api/add_product', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{
+                        name: name,
+                        price: parseFloat(price),
+                        category: category,
+                        details: details,
+                        image: image || 'https://via.placeholder.com/300x200?text=No+Image',
+                        hidden_data: hiddenData
+                    }})
+                }})
+                .then(r => r.json())
+                .then(data => {{
+                    if(data.status === 'success') {{
+                        alert('✅ تم إضافة المنتج بنجاح!\\n\\n📦 المنتج: ' + name + '\\n💰 السعر: ' + price + ' ريال');
+                        location.reload();
+                    }} else {{
+                        alert('❌ ' + data.message);
+                    }}
+                }});
+            }}
+            
             function generateKeys() {{
                 const amount = document.getElementById('keyAmount').value;
                 const count = document.getElementById('keyCount').value;
@@ -2754,6 +2832,49 @@ def api_add_balance():
         pass
     
     return {{'status': 'success'}}
+
+# API لإضافة منتج من لوحة التحكم
+@app.route('/api/add_product', methods=['POST'])
+def api_add_product():
+    data = request.json
+    name = data.get('name')
+    price = data.get('price')
+    category = data.get('category')
+    details = data.get('details', '')
+    image = data.get('image', 'https://via.placeholder.com/300x200?text=No+Image')
+    hidden_data = data.get('hidden_data')
+    
+    if not name or not price or not hidden_data:
+        return {'status': 'error', 'message': 'بيانات غير كاملة'}
+    
+    # إضافة المنتج
+    item = {
+        'item_name': name,
+        'price': str(price),
+        'seller_id': str(ADMIN_ID),
+        'seller_name': 'المالك',
+        'hidden_data': hidden_data,
+        'category': category,
+        'details': details,
+        'image_url': image
+    }
+    marketplace_items.append(item)
+    
+    # إشعار المالك في البوت
+    try:
+        bot.send_message(
+            ADMIN_ID,
+            f"✅ **تم إضافة منتج جديد من لوحة التحكم**\n\n"
+            f"📦 المنتج: {name}\n"
+            f"💰 السعر: {price} ريال\n"
+            f"🏷️ الفئة: {category}\n"
+            f"📊 إجمالي المنتجات: {len(marketplace_items)}",
+            parse_mode="Markdown"
+        )
+    except:
+        pass
+    
+    return {'status': 'success', 'message': 'تم إضافة المنتج بنجاح'}
 
 # API لتوليد مفاتيح من لوحة التحكم
 @app.route('/api/generate_keys', methods=['POST'])
