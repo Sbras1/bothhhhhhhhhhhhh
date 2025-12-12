@@ -437,6 +437,57 @@ HTML_PAGE = """
             margin: 20px 0;
         }
         
+        /* نافذة التحذير */
+        .warning-modal .modal-header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        .warning-icon {
+            font-size: 80px;
+            text-align: center;
+            margin: 20px 0;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        .warning-message {
+            text-align: center;
+            font-size: 18px;
+            color: var(--text-color);
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .warning-balance {
+            background: rgba(231, 76, 60, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #e74c3c;
+        }
+        .warning-balance-label {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .warning-balance-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .warning-note {
+            background: rgba(241, 196, 15, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: #f39c12;
+            font-size: 14px;
+            border: 2px dashed #f39c12;
+            margin: 20px 0;
+        }
+        
         /* حاوية الفئات - الشبكة */
         .categories-grid {
             display: grid;
@@ -984,6 +1035,40 @@ HTML_PAGE = """
         </div>
     </div>
     
+    <!-- نافذة الرصيد غير كافٍ -->
+    <div id="warningModal" class="modal">
+        <div class="modal-content warning-modal">
+            <div class="modal-header">
+                <h2>⚠️ رصيد غير كافٍ</h2>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon">💰</div>
+                <div class="warning-message">
+                    عذراً! رصيدك الحالي غير كافٍ لإتمام عملية الشراء
+                </div>
+                <div class="warning-balance">
+                    <div class="warning-balance-label">رصيدك الحالي</div>
+                    <div class="warning-balance-value" id="warningBalance">0</div>
+                    <div style="font-size: 14px; color: #888; margin-top: 5px;">ريال</div>
+                </div>
+                <div class="warning-balance">
+                    <div class="warning-balance-label">سعر المنتج</div>
+                    <div class="warning-balance-value" id="warningPrice">0</div>
+                    <div style="font-size: 14px; color: #888; margin-top: 5px;">ريال</div>
+                </div>
+                <div class="warning-note">
+                    💳 قم بشحن محفظتك أولاً عن طريق:<br>
+                    1️⃣ التواصل مع الإدارة<br>
+                    2️⃣ استخدام مفتاح شحن: /شحن<br>
+                    3️⃣ طلب شحن من المالك
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeWarningModal()" style="width: 100%;">حسناً</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card {% if item.get('sold') %}sold-product{% endif %}">
@@ -1266,7 +1351,7 @@ HTML_PAGE = """
         function buyItem(itemIndex, price, itemName, category, details) {
             // التحقق من الرصيد أولاً
             if(userBalance < price) {
-                alert("❌ رصيدك غير كافي! اشحن محفظتك أولاً.");
+                showWarningModal(price);
                 return;
             }
 
@@ -1335,15 +1420,29 @@ HTML_PAGE = """
             location.reload();
         }
 
+        function showWarningModal(price) {
+            document.getElementById('warningBalance').textContent = userBalance.toFixed(2);
+            document.getElementById('warningPrice').textContent = parseFloat(price).toFixed(2);
+            document.getElementById('warningModal').style.display = 'block';
+        }
+
+        function closeWarningModal() {
+            document.getElementById('warningModal').style.display = 'none';
+        }
+
         // إغلاق النافذة عند الضغط خارجها
         window.onclick = function(event) {
             const buyModal = document.getElementById('buyModal');
             const successModal = document.getElementById('successModal');
+            const warningModal = document.getElementById('warningModal');
             if(event.target == buyModal) {
                 closeModal();
             }
             if(event.target == successModal) {
                 closeSuccessModal();
+            }
+            if(event.target == warningModal) {
+                closeWarningModal();
             }
         }
         
