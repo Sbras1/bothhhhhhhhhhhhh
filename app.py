@@ -2082,6 +2082,440 @@ def set_webhook():
 def health():
     return {'status': 'ok'}, 200
 
+# لوحة التحكم للمالك
+@app.route('/dashboard')
+def dashboard():
+    # التحقق من كلمة المرور
+    password = request.args.get('pass', '')
+    admin_password = os.environ.get('ADMIN_PASS', 'admin123')
+    
+    if password != admin_password:
+        return """
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>تسجيل الدخول - لوحة التحكم</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .login-box {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                    max-width: 400px;
+                    width: 90%;
+                }
+                h1 { color: #667eea; margin-bottom: 30px; text-align: center; }
+                input {
+                    width: 100%;
+                    padding: 15px;
+                    border: 2px solid #ddd;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    text-align: center;
+                }
+                input:focus { outline: none; border-color: #667eea; }
+                button {
+                    width: 100%;
+                    padding: 15px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: transform 0.3s;
+                }
+                button:hover { transform: scale(1.05); }
+                .error { color: red; text-align: center; margin-top: 15px; }
+            </style>
+        </head>
+        <body>
+            <div class="login-box">
+                <h1>🔐 لوحة التحكم</h1>
+                <form method="GET">
+                    <input type="password" name="pass" placeholder="كلمة المرور" required autofocus>
+                    <button type="submit">دخول</button>
+                </form>
+                """ + (f'<p class="error">❌ كلمة مرور خاطئة!</p>' if password else '') + """
+            </div>
+        </body>
+        </html>
+        """
+    
+    # حساب الإحصائيات
+    total_users = len(users_wallets)
+    total_products = len(marketplace_items)
+    available_products = len([p for p in marketplace_items if not p.get('sold')])
+    sold_products = len([p for p in marketplace_items if p.get('sold')])
+    total_orders = len(active_orders)
+    active_keys = len([k for k, v in charge_keys.items() if not v['used']])
+    used_keys = len([k for k, v in charge_keys.items() if v['used']])
+    total_balance = sum(users_wallets.values())
+    
+    # آخر 10 طلبات
+    recent_orders = list(active_orders.items())[-10:]
+    recent_orders.reverse()
+    
+    return f"""
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>لوحة التحكم - المالك</title>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                min-height: 100vh;
+                padding: 20px;
+                color: #333;
+            }}
+            .container {{
+                max-width: 1400px;
+                margin: 0 auto;
+            }}
+            .header {{
+                background: white;
+                padding: 20px 30px;
+                border-radius: 15px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }}
+            .header h1 {{ color: #667eea; font-size: 28px; }}
+            .logout-btn {{
+                background: #e74c3c;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+            .stats-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }}
+            .stat-card {{
+                background: white;
+                padding: 20px;
+                border-radius: 15px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                text-align: center;
+            }}
+            .stat-card .icon {{ font-size: 40px; margin-bottom: 10px; }}
+            .stat-card .value {{ font-size: 32px; font-weight: bold; color: #667eea; }}
+            .stat-card .label {{ color: #888; margin-top: 5px; }}
+            .section {{
+                background: white;
+                padding: 25px;
+                border-radius: 15px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }}
+            .section h2 {{ color: #667eea; margin-bottom: 20px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+            th, td {{
+                padding: 12px;
+                text-align: right;
+                border-bottom: 1px solid #ddd;
+            }}
+            th {{
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                font-weight: bold;
+            }}
+            tr:hover {{ background: #f5f5f5; }}
+            .badge {{
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 15px;
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            .badge-success {{ background: #00b894; color: white; }}
+            .badge-danger {{ background: #e74c3c; color: white; }}
+            .badge-warning {{ background: #fdcb6e; color: #333; }}
+            .badge-info {{ background: #74b9ff; color: white; }}
+            .tools {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 15px;
+            }}
+            .tool-box {{
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                border-left: 4px solid #667eea;
+            }}
+            .tool-box h3 {{ color: #667eea; margin-bottom: 15px; }}
+            .tool-box input, .tool-box select {{
+                width: 100%;
+                padding: 10px;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }}
+            .tool-box button {{
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+            }}
+            .tool-box button:hover {{ opacity: 0.9; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎛️ لوحة التحكم - المالك</h1>
+                <button class="logout-btn" onclick="window.location.href='/'">⬅️ الموقع الرئيسي</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon">👥</div>
+                    <div class="value">{total_users}</div>
+                    <div class="label">المستخدمين</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📦</div>
+                    <div class="value">{available_products}</div>
+                    <div class="label">منتجات متاحة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">✅</div>
+                    <div class="value">{sold_products}</div>
+                    <div class="label">منتجات مباعة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🔑</div>
+                    <div class="value">{active_keys}</div>
+                    <div class="label">مفاتيح نشطة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🎫</div>
+                    <div class="value">{used_keys}</div>
+                    <div class="label">مفاتيح مستخدمة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">💰</div>
+                    <div class="value">{total_balance:.0f}</div>
+                    <div class="label">إجمالي الأرصدة</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>🛠️ أدوات سريعة</h2>
+                <div class="tools">
+                    <div class="tool-box">
+                        <h3>💳 شحن رصيد مستخدم</h3>
+                        <input type="number" id="userId" placeholder="آيدي المستخدم">
+                        <input type="number" id="amount" placeholder="المبلغ">
+                        <button onclick="addBalance()">شحن</button>
+                    </div>
+                    <div class="tool-box">
+                        <h3>🔑 توليد مفاتيح شحن</h3>
+                        <input type="number" id="keyAmount" placeholder="قيمة المفتاح">
+                        <input type="number" id="keyCount" placeholder="عدد المفاتيح" value="1">
+                        <button onclick="generateKeys()">توليد</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>📋 آخر الطلبات</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>رقم الطلب</th>
+                            <th>المنتج</th>
+                            <th>السعر</th>
+                            <th>المشتري</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join([f'''
+                        <tr>
+                            <td>#{order_id}</td>
+                            <td>{order['item_name']}</td>
+                            <td>{order['price']} ريال</td>
+                            <td>{order['buyer_name']}</td>
+                            <td><span class="badge badge-success">مكتمل</span></td>
+                        </tr>
+                        ''' for order_id, order in recent_orders]) if recent_orders else '<tr><td colspan="5" style="text-align: center;">لا توجد طلبات</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>👥 المستخدمين والأرصدة</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>آيدي المستخدم</th>
+                            <th>الرصيد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join([f'''
+                        <tr>
+                            <td>{user_id}</td>
+                            <td>{balance:.2f} ريال</td>
+                        </tr>
+                        ''' for user_id, balance in list(users_wallets.items())[:20]]) if users_wallets else '<tr><td colspan="2" style="text-align: center;">لا يوجد مستخدمين</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>🔑 المفاتيح النشطة</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>المفتاح</th>
+                            <th>القيمة</th>
+                            <th>الحالة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join([f'''
+                        <tr>
+                            <td><code>{key_code}</code></td>
+                            <td>{key_data['amount']} ريال</td>
+                            <td><span class="badge {'badge-success' if not key_data['used'] else 'badge-danger'}">{'نشط' if not key_data['used'] else f"مستخدم بواسطة {key_data.get('used_by', 'N/A')}"}</span></td>
+                        </tr>
+                        ''' for key_code, key_data in list(charge_keys.items())[:20]]) if charge_keys else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <script>
+            function addBalance() {{
+                const userId = document.getElementById('userId').value;
+                const amount = document.getElementById('amount').value;
+                
+                if(!userId || !amount) {{
+                    alert('الرجاء ملء جميع الحقول!');
+                    return;
+                }}
+                
+                fetch('/api/add_balance', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{user_id: userId, amount: parseFloat(amount)}})
+                }})
+                .then(r => r.json())
+                .then(data => {{
+                    if(data.status === 'success') {{
+                        alert('✅ تم شحن الرصيد بنجاح!');
+                        location.reload();
+                    }} else {{
+                        alert('❌ ' + data.message);
+                    }}
+                }});
+            }}
+            
+            function generateKeys() {{
+                const amount = document.getElementById('keyAmount').value;
+                const count = document.getElementById('keyCount').value;
+                
+                if(!amount || !count) {{
+                    alert('الرجاء ملء جميع الحقول!');
+                    return;
+                }}
+                
+                fetch('/api/generate_keys', {{
+                    method: 'POST',
+                    headers: {{'Content-Type': 'application/json'}},
+                    body: JSON.stringify({{amount: parseFloat(amount), count: parseInt(count)}})
+                }})
+                .then(r => r.json())
+                .then(data => {{
+                    if(data.status === 'success') {{
+                        alert('✅ تم توليد المفاتيح بنجاح!\\n\\n' + data.keys.join('\\n'));
+                        location.reload();
+                    }} else {{
+                        alert('❌ ' + data.message);
+                    }}
+                }});
+            }}
+        </script>
+    </body>
+    </html>
+    """
+
+# API لشحن رصيد من لوحة التحكم
+@app.route('/api/add_balance', methods=['POST'])
+def api_add_balance():
+    data = request.json
+    user_id = str(data.get('user_id'))
+    amount = float(data.get('amount'))
+    
+    if not user_id or amount <= 0:
+        return {{'status': 'error', 'message': 'بيانات غير صحيحة'}}
+    
+    add_balance(user_id, amount)
+    
+    # إشعار المستخدم
+    try:
+        bot.send_message(int(user_id), f"🎉 تم شحن رصيدك بمبلغ {{amount}} ريال!")
+    except:
+        pass
+    
+    return {{'status': 'success'}}
+
+# API لتوليد مفاتيح من لوحة التحكم
+@app.route('/api/generate_keys', methods=['POST'])
+def api_generate_keys():
+    data = request.json
+    amount = float(data.get('amount'))
+    count = int(data.get('count', 1))
+    
+    if amount <= 0 or count <= 0 or count > 100:
+        return {{'status': 'error', 'message': 'بيانات غير صحيحة'}}
+    
+    generated_keys = []
+    for i in range(count):
+        key_code = f"KEY-{{random.randint(10000, 99999)}}-{{random.randint(1000, 9999)}}"
+        charge_keys[key_code] = {{
+            'amount': amount,
+            'used': False,
+            'used_by': None,
+            'created_at': time.time()
+        }}
+        generated_keys.append(key_code)
+    
+    return {{'status': 'success', 'keys': generated_keys}}
+
 if __name__ == "__main__":
     # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
     port = int(os.environ.get("PORT", 10000))
