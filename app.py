@@ -404,6 +404,39 @@ HTML_PAGE = """
             box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
         }
         
+        /* نافذة النجاح */
+        .success-modal .modal-header {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+        }
+        .success-icon {
+            font-size: 80px;
+            text-align: center;
+            margin: 20px 0;
+            animation: scaleIn 0.5s;
+        }
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .success-message {
+            text-align: center;
+            font-size: 18px;
+            color: var(--text-color);
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .success-note {
+            background: rgba(0, 184, 148, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: #00b894;
+            font-size: 14px;
+            border: 2px dashed #00b894;
+            margin: 20px 0;
+        }
+        
         /* حاوية الفئات - الشبكة */
         .categories-grid {
             display: grid;
@@ -926,6 +959,31 @@ HTML_PAGE = """
         </div>
     </div>
     
+    <!-- نافذة النجاح -->
+    <div id="successModal" class="modal">
+        <div class="modal-content success-modal">
+            <div class="modal-header">
+                <h2>✅ تم الشراء بنجاح</h2>
+            </div>
+            <div class="modal-body">
+                <div class="success-icon">🎉</div>
+                <div class="success-message">
+                    تم شراء المنتج بنجاح!<br>
+                    تحقق من رسائل البوت لاستلام بيانات الحساب
+                </div>
+                <div class="success-note">
+                    📱 افتح البوت الآن للحصول على:<br>
+                    🔐 البريد الإلكتروني<br>
+                    🔑 كلمة المرور<br>
+                    ✨ استمتع بخدمتك!
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-confirm" onclick="closeSuccessModal()" style="width: 100%;">حسناً 👍</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card {% if item.get('sold') %}sold-product{% endif %}">
@@ -1260,8 +1318,7 @@ HTML_PAGE = """
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
                     closeModal();
-                    alert('✅ تم الشراء بنجاح! تحقق من رسائل البوت لاستلام البيانات.');
-                    location.reload();
+                    showSuccessModal();
                 } else {
                     closeModal();
                     alert('❌ ' + data.message);
@@ -1269,11 +1326,24 @@ HTML_PAGE = """
             });
         }
 
+        function showSuccessModal() {
+            document.getElementById('successModal').style.display = 'block';
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').style.display = 'none';
+            location.reload();
+        }
+
         // إغلاق النافذة عند الضغط خارجها
         window.onclick = function(event) {
-            const modal = document.getElementById('buyModal');
-            if(event.target == modal) {
+            const buyModal = document.getElementById('buyModal');
+            const successModal = document.getElementById('successModal');
+            if(event.target == buyModal) {
                 closeModal();
+            }
+            if(event.target == successModal) {
+                closeSuccessModal();
             }
         }
         
