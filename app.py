@@ -288,6 +288,122 @@ HTML_PAGE = """
             border-left: 3px solid #e74c3c;
         }
         
+        /* نافذة التأكيد */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 20px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            animation: slideDown 0.3s;
+            overflow: hidden;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .modal-body {
+            padding: 25px;
+            color: var(--text-color);
+        }
+        .modal-product-info {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        .modal-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .modal-info-row:last-child {
+            border-bottom: none;
+        }
+        .modal-info-label {
+            color: #888;
+            font-size: 14px;
+        }
+        .modal-info-value {
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .modal-price {
+            color: #00b894;
+            font-size: 28px !important;
+            font-weight: bold;
+        }
+        .modal-details {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-right: 4px solid #667eea;
+            color: var(--text-color);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            padding: 0 25px 25px 25px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+        }
+        .modal-btn-confirm:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 184, 148, 0.4);
+        }
+        .modal-btn-cancel {
+            background: #e74c3c;
+            color: white;
+        }
+        .modal-btn-cancel:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
         /* حاوية الفئات - الشبكة */
         .categories-grid {
             display: grid;
@@ -777,6 +893,39 @@ HTML_PAGE = """
         <h3 style="margin: 0;">🛒 السوق</h3>
         <span id="categoryFilter" style="color: #6c5ce7; font-size: 14px; font-weight: bold;"></span>
     </div>
+    <!-- نافذة التأكيد -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛒 تأكيد الشراء</h2>
+            </div>
+            <div class="modal-body">
+                <div class="modal-product-info">
+                    <div class="modal-info-row">
+                        <span class="modal-info-label">📦 المنتج:</span>
+                        <span class="modal-info-value" id="modalProductName"></span>
+                    </div>
+                    <div class="modal-info-row">
+                        <span class="modal-info-label">🏷️ الفئة:</span>
+                        <span class="modal-info-value" id="modalProductCategory"></span>
+                    </div>
+                    <div class="modal-info-row">
+                        <span class="modal-info-label">💰 السعر:</span>
+                        <span class="modal-info-value modal-price" id="modalProductPrice"></span>
+                    </div>
+                </div>
+                <div class="modal-details" id="modalProductDetails"></div>
+                <div style="text-align: center; color: #00b894; font-size: 14px; margin-top: 15px;">
+                    ⚡ سيتم تسليم الحساب فوراً بعد الشراء
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeModal()">إلغاء</button>
+                <button class="modal-btn modal-btn-confirm" onclick="confirmPurchase()">تأكيد الشراء ✓</button>
+            </div>
+        </div>
+    </div>
+    
     <div id="market" class="product-grid">
         {% for item in items %}
         <div class="product-card {% if item.get('sold') %}sold-product{% endif %}">
@@ -807,7 +956,7 @@ HTML_PAGE = """
                     {% if item.get('sold') %}
                         <button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>
                     {% elif item.seller_id|string != current_user_id|string %}
-                        <button class="product-buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}')">شراء 🛒</button>
+                        <button class="product-buy-btn" onclick="buyItem('{{ loop.index0 }}', '{{ item.price }}', '{{ item.item_name }}', '{{ item.get('category', '') }}', '{{ item.get('details', '') }}')">شراء 🛒</button>
                     {% else %}
                         <div class="my-product-badge">منتجك ⭐</div>
                     {% endif %}
@@ -1043,7 +1192,7 @@ HTML_PAGE = """
                                 ${isSold ? 
                                     `<button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>` :
                                     (!isMyProduct ? 
-                                        `<button class="product-buy-btn" onclick="buyItem('${allItems.indexOf(item)}', '${item.price}', '${item.item_name}')">شراء 🛒</button>` : 
+                                        `<button class="product-buy-btn" onclick="buyItem('${allItems.indexOf(item)}', '${item.price}', '${item.item_name}', '${item.category || ''}', '${item.details || ''}')">شراء 🛒</button>` : 
                                         `<div class="my-product-badge">منتجك ⭐</div>`)
                                 }
                             </div>
@@ -1054,17 +1203,12 @@ HTML_PAGE = """
             });
         }
 
-        function buyItem(itemIndex, price, itemName) {
+        let currentPurchaseData = null;
+        
+        function buyItem(itemIndex, price, itemName, category, details) {
             // التحقق من الرصيد أولاً
             if(userBalance < price) {
                 alert("❌ رصيدك غير كافي! اشحن محفظتك أولاً.");
-                return;
-            }
-
-            // تأكيد الشراء المباشر
-            const confirmMsg = `هل تريد شراء: ${itemName}\nالسعر: ${price} ريال\n\n✅ سيتم تسليم الحساب فوراً!`;
-            
-            if(!confirm(confirmMsg)) {
                 return;
             }
 
@@ -1082,22 +1226,55 @@ HTML_PAGE = """
                 return;
             }
 
+            // حفظ بيانات الشراء
+            currentPurchaseData = {
+                itemIndex: itemIndex,
+                buyerId: buyerId,
+                buyerName: buyerName
+            };
+
+            // عرض نافذة التأكيد
+            document.getElementById('modalProductName').textContent = itemName;
+            document.getElementById('modalProductCategory').textContent = category || 'غير محدد';
+            document.getElementById('modalProductPrice').textContent = price + ' ريال';
+            document.getElementById('modalProductDetails').textContent = details || 'لا توجد تفاصيل إضافية';
+            document.getElementById('buyModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('buyModal').style.display = 'none';
+            currentPurchaseData = null;
+        }
+
+        function confirmPurchase() {
+            if(!currentPurchaseData) return;
+
             fetch('/buy', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    buyer_id: buyerId,
-                    buyer_name: buyerName,
-                    item_index: itemIndex
+                    buyer_id: currentPurchaseData.buyerId,
+                    buyer_name: currentPurchaseData.buyerName,
+                    item_index: currentPurchaseData.itemIndex
                 })
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
+                    closeModal();
                     alert('✅ تم الشراء بنجاح! تحقق من رسائل البوت لاستلام البيانات.');
                     location.reload();
                 } else {
+                    closeModal();
                     alert('❌ ' + data.message);
                 }
             });
+        }
+
+        // إغلاق النافذة عند الضغط خارجها
+        window.onclick = function(event) {
+            const modal = document.getElementById('buyModal');
+            if(event.target == modal) {
+                closeModal();
+            }
         }
         
         // تحميل أول قسم (نتفلكس) عند فتح الصفحة
@@ -1350,6 +1527,19 @@ def process_product_category(message):
     temp_product_data[user_id]['category'] = message.text.strip()
     bot.reply_to(message, f"✅ تم اختيار الفئة: {message.text.strip()}", reply_markup=types.ReplyKeyboardRemove())
     
+    msg = bot.send_message(message.chat.id, "📝 أرسل تفاصيل المنتج (مثل: مدة الاشتراك، المميزات، إلخ):")
+    bot.register_next_step_handler(msg, process_product_details)
+
+def process_product_details(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['details'] = message.text.strip()
+    bot.reply_to(message, "✅ تم إضافة التفاصيل")
+    
     markup = types.ReplyKeyboardMarkup(row_width=1, one_time_keyboard=True, resize_keyboard=True)
     markup.add(types.KeyboardButton("تخطي"))
     
@@ -1390,7 +1580,8 @@ def process_product_hidden_data(message):
         f"📝 الاسم: {product['item_name']}\n"
         f"💰 السعر: {product['price']} ريال\n"
         f"🏷️ الفئة: {product['category']}\n"
-        f"🖼️ الصورة: {product['image_url']}\n"
+        f"� التفاصيل: {product['details']}\n"
+        f"�🖼️ الصورة: {product['image_url']}\n"
         f"🔐 البيانات: {product['hidden_data']}\n\n"
         "هل تريد إضافة هذا المنتج؟"
     )
@@ -1419,6 +1610,7 @@ def confirm_add_product(message):
                 'seller_name': 'المالك',
                 'hidden_data': product['hidden_data'],
                 'category': product['category'],
+                'details': product['details'],
                 'image_url': product['image_url']
             }
             marketplace_items.append(item)
