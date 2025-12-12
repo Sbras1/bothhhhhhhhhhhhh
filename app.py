@@ -306,14 +306,15 @@ HTML_PAGE = """
         }
         .modal-content {
             background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-            margin: 10% auto;
+            margin: 5% auto 80px auto;
             padding: 0;
             border-radius: 20px;
-            max-width: 450px;
+            max-width: 440px;
+            max-height: 85vh;
             width: 90%;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
             animation: slideDown 0.3s;
-            overflow: hidden;
+            overflow-y: auto;
         }
         @keyframes slideDown {
             from { transform: translateY(-50px); opacity: 0; }
@@ -321,16 +322,16 @@ HTML_PAGE = """
         }
         .modal-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
+            padding: 18px;
             text-align: center;
             color: white;
         }
         .modal-header h2 {
             margin: 0;
-            font-size: 24px;
+            font-size: 20px;
         }
         .modal-body {
-            padding: 25px;
+            padding: 20px;
             color: var(--text-color);
         }
         .modal-product-info {
@@ -375,7 +376,7 @@ HTML_PAGE = """
         .modal-footer {
             display: flex;
             gap: 10px;
-            padding: 0 25px 25px 25px;
+            padding: 0 20px 20px 20px;
         }
         .modal-btn {
             flex: 1;
@@ -440,12 +441,12 @@ HTML_PAGE = """
         /* نافذة التحذير */
         .warning-modal .modal-header {
             background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-            padding: 25px;
+            padding: 18px;
         }
         .warning-icon {
-            font-size: 70px;
+            font-size: 55px;
             text-align: center;
-            margin: 15px 0 20px 0;
+            margin: 10px 0 15px 0;
             animation: bounce 0.6s ease-in-out;
             filter: drop-shadow(0 5px 15px rgba(255, 107, 107, 0.3));
         }
@@ -455,22 +456,22 @@ HTML_PAGE = """
         }
         .warning-message {
             text-align: center;
-            font-size: 17px;
+            font-size: 15px;
             color: var(--text-color);
-            margin: 0 0 25px 0;
-            line-height: 1.5;
+            margin: 0 0 18px 0;
+            line-height: 1.4;
             font-weight: 500;
         }
         .balance-comparison {
             display: flex;
-            gap: 15px;
-            margin: 25px 0;
+            gap: 12px;
+            margin: 18px 0;
         }
         .balance-box {
             flex: 1;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-            padding: 20px;
-            border-radius: 15px;
+            padding: 15px;
+            border-radius: 12px;
             text-align: center;
             border: 2px solid rgba(255, 255, 255, 0.1);
             position: relative;
@@ -490,16 +491,16 @@ HTML_PAGE = """
         }
         .balance-label {
             color: #999;
-            font-size: 13px;
-            margin-bottom: 10px;
+            font-size: 11px;
+            margin-bottom: 8px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
         .balance-value {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             color: #ff6b6b;
-            margin: 10px 0;
+            margin: 8px 0;
             text-shadow: 0 2px 10px rgba(255, 107, 107, 0.3);
         }
         .balance-box.current .balance-value {
@@ -507,38 +508,38 @@ HTML_PAGE = """
             text-shadow: 0 2px 10px rgba(162, 155, 254, 0.3);
         }
         .balance-currency {
-            font-size: 14px;
+            font-size: 12px;
             color: #666;
             font-weight: normal;
         }
         .warning-actions {
             background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.1) 100%);
-            padding: 20px;
-            border-radius: 15px;
-            margin: 25px 0 0 0;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 18px 0 0 0;
             border: 2px solid rgba(255, 193, 7, 0.3);
         }
         .warning-actions h4 {
             color: #ffc107;
-            font-size: 16px;
-            margin: 0 0 15px 0;
+            font-size: 14px;
+            margin: 0 0 12px 0;
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
         }
         .action-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 0;
+            gap: 10px;
+            padding: 8px 0;
             color: var(--text-color);
-            font-size: 14px;
+            font-size: 13px;
         }
         .action-icon {
-            font-size: 20px;
-            min-width: 30px;
+            font-size: 18px;
+            min-width: 28px;
             text-align: center;
         }
         
