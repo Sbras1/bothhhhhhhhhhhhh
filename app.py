@@ -3289,6 +3289,12 @@ def dashboard():
                     return;
                 }}
                 
+                // تغيير نص الزر ليعرف المستخدم أنه يعمل
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "جاري الشحن...";
+                btn.disabled = true;
+
                 fetch('/api/add_balance', {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -3300,8 +3306,13 @@ def dashboard():
                         alert('✅ تم شحن الرصيد بنجاح!');
                         location.reload();
                     }} else {{
-                        alert('❌ ' + data.message);
+                        alert('❌ خطأ: ' + data.message);
                     }}
+                }})
+                .catch(err => alert("❌ خطأ في الاتصال: " + err))
+                .finally(() => {{
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 }});
             }}
             
@@ -3318,6 +3329,11 @@ def dashboard():
                     return;
                 }}
                 
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "جاري الإضافة...";
+                btn.disabled = true;
+                
                 fetch('/api/add_product', {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -3333,15 +3349,16 @@ def dashboard():
                 .then(r => r.json())
                 .then(data => {{
                     if(data.status === 'success') {{
-                        alert('✅ تم إضافة المنتج بنجاح!\\n\\n📦 المنتج: ' + name + '\\n💰 السعر: ' + price + ' ريال');
+                        alert('✅ تم إضافة المنتج بنجاح!');
                         location.reload();
                     }} else {{
-                        alert('❌ ' + data.message);
+                        alert('❌ خطأ من السيرفر: ' + data.message);
                     }}
                 }})
-                .catch(err => {{
-                    console.error('خطأ في إضافة المنتج:', err);
-                    alert('❌ حدث خطأ في الاتصال بالسيرفر. الرجاء المحاولة مرة أخرى.');
+                .catch(err => alert("❌ فشل الاتصال بالسيرفر: " + err))
+                .finally(() => {{
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 }});
             }}
             
@@ -3354,6 +3371,11 @@ def dashboard():
                     return;
                 }}
                 
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "جاري التوليد...";
+                btn.disabled = true;
+
                 fetch('/api/generate_keys', {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -3364,12 +3386,13 @@ def dashboard():
                     if(data.status === 'success') {{
                         showKeysModal(data.keys, amount);
                     }} else {{
-                        alert('❌ ' + data.message);
+                        alert('❌ خطأ: ' + data.message);
                     }}
                 }})
-                .catch(err => {{
-                    console.error('خطأ في توليد المفاتيح:', err);
-                    alert('❌ حدث خطأ في الاتصال بالسيرفر. الرجاء المحاولة مرة أخرى.');
+                .catch(err => alert("❌ خطأ في الاتصال: " + err))
+                .finally(() => {{
+                    btn.innerText = originalText;
+                    btn.disabled = false;
                 }});
             }}
             
