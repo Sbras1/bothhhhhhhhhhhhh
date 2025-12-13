@@ -2928,12 +2928,15 @@ def dashboard():
                         alert('❌ خطأ: ' + data.message);
                     }}
                 }})
-                .catch(err => alert("❌ خطأ في الاتصال: " + err))
+                .catch(err => {{
+                    console.error('Error:', err);
+                    alert('❌ خطأ في الاتصال بالسيرفر');
+                }})
                 .finally(() => {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
-            }}
+            }};
             
             window.addProduct = function() {{
                 const name = document.getElementById('productName').value;
@@ -2961,7 +2964,7 @@ def dashboard():
                         price: parseFloat(price),
                         category: category,
                         details: details,
-                        image: image || 'https://via.placeholder.com/300x200?text=No+Image',
+                        image: (image || 'https://via.placeholder.com/300x200?text=No+Image'),
                         hidden_data: hiddenData
                     }})
                 }})
@@ -2974,12 +2977,15 @@ def dashboard():
                         alert('❌ خطأ من السيرفر: ' + data.message);
                     }}
                 }})
-                .catch(err => alert("❌ فشل الاتصال بالسيرفر: " + err))
+                .catch(err => {{
+                    console.error('Error:', err);
+                    alert('❌ فشل الاتصال بالسيرفر');
+                }})
                 .finally(() => {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
-            }}
+            }};
             
             window.generateKeys = function() {{
                 const amount = document.getElementById('keyAmount').value;
@@ -3008,12 +3014,15 @@ def dashboard():
                         alert('❌ خطأ: ' + data.message);
                     }}
                 }})
-                .catch(err => alert("❌ خطأ في الاتصال: " + err))
+                .catch(err => {{
+                    console.error('Error:', err);
+                    alert('❌ خطأ في الاتصال بالسيرفر');
+                }})
                 .finally(() => {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
-            }}
+            }};
             
             window.showKeysModal = function(keys, amount) {{
                 const modal = document.getElementById('keysModal');
@@ -3032,7 +3041,7 @@ def dashboard():
                 }});
                 
                 modal.style.display = 'block';
-            }}
+            }};
             
             window.copyKey = function(key, btn) {{
                 navigator.clipboard.writeText(key).then(() => {{
@@ -3043,21 +3052,22 @@ def dashboard():
                         btn.classList.remove('copied');
                     }}, 2000);
                 }}).catch(err => {{
-                    alert('فشل النسخ: ' + err);
+                    console.error('Copy error:', err);
+                    alert('فشل النسخ');
                 }});
-            }}
+            }};
             
             window.closeKeysModal = function() {{
                 document.getElementById('keysModal').style.display = 'none';
                 location.reload();
-            }}
+            }};
             
             window.onclick = function(event) {{
                 const modal = document.getElementById('keysModal');
                 if(event.target == modal) {{
                     closeKeysModal();
                 }}
-            }}
+            }};
         </script>
     </body>
     </html>
