@@ -2903,17 +2903,16 @@ def dashboard():
             // Dashboard Control Panel Functions v2.0
             window.addBalance = function() {{
                 console.log('addBalance called');
-                const userId = document.getElementById('userId').value;
-                const amount = document.getElementById('amount').value;
+                var userId = document.getElementById('userId').value;
+                var amount = document.getElementById('amount').value;
                 
                 if(!userId || !amount) {{
-                    alert('الرجاء ملء جميع الحقول!');
+                    alert('الرجاء ملء جميع الحقول');
                     return;
                 }}
                 
-                // تغيير نص الزر ليعرف المستخدم أنه يعمل
-                const btn = event.target;
-                const originalText = btn.innerText;
+                var btn = event.target;
+                var originalText = btn.innerText;
                 btn.innerText = "جاري الشحن...";
                 btn.disabled = true;
 
@@ -2931,31 +2930,31 @@ def dashboard():
                         alert('❌ خطأ: ' + data.message);
                     }}
                 }})
-                .catch(err => {{
+                .catch(function(err) {{
                     console.error('Error:', err);
-                    alert('❌ خطأ في الاتصال بالسيرفر');
+                    alert('خطأ في الاتصال بالسيرفر');
                 }})
-                .finally(() => {{
+                .finally(function() {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
             }};
             
             window.addProduct = function() {{
-                const name = document.getElementById('productName').value;
-                const price = document.getElementById('productPrice').value;
-                const category = document.getElementById('productCategory').value;
-                const details = document.getElementById('productDetails').value;
-                const image = document.getElementById('productImage').value;
-                const hiddenData = document.getElementById('productHiddenData').value;
+                var name = document.getElementById('productName').value;
+                var price = document.getElementById('productPrice').value;
+                var category = document.getElementById('productCategory').value;
+                var details = document.getElementById('productDetails').value;
+                var image = document.getElementById('productImage').value;
+                var hiddenData = document.getElementById('productHiddenData').value;
                 
                 if(!name || !price || !hiddenData) {{
-                    alert('الرجاء ملء الحقول المطلوبة (الاسم، السعر، البيانات المخفية)!');
+                    alert('الرجاء ملء الحقول المطلوبة');
                     return;
                 }}
                 
-                const btn = event.target;
-                const originalText = btn.innerText;
+                var btn = event.target;
+                var originalText = btn.innerText;
                 btn.innerText = "جاري الإضافة...";
                 btn.disabled = true;
                 
@@ -2980,11 +2979,11 @@ def dashboard():
                         alert('❌ خطأ من السيرفر: ' + data.message);
                     }}
                 }})
-                .catch(err => {{
+                .catch(function(err) {{
                     console.error('Error:', err);
-                    alert('❌ فشل الاتصال بالسيرفر');
+                    alert('فشل الاتصال بالسيرفر');
                 }})
-                .finally(() => {{
+                .finally(function() {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
@@ -2992,16 +2991,16 @@ def dashboard():
             
             window.generateKeys = function() {{
                 console.log('generateKeys called');
-                const amount = document.getElementById('keyAmount').value;
-                const count = document.getElementById('keyCount').value;
+                var amount = document.getElementById('keyAmount').value;
+                var count = document.getElementById('keyCount').value;
                 
                 if(!amount || !count) {{
-                    alert('الرجاء ملء جميع الحقول!');
+                    alert('الرجاء ملء جميع الحقول');
                     return;
                 }}
                 
-                const btn = event.target;
-                const originalText = btn.innerText;
+                var btn = event.target;
+                var originalText = btn.innerText;
                 btn.innerText = "جاري التوليد...";
                 btn.disabled = true;
 
@@ -3018,11 +3017,11 @@ def dashboard():
                         alert('❌ خطأ: ' + data.message);
                     }}
                 }})
-                .catch(err => {{
+                .catch(function(err) {{
                     console.error('Error:', err);
-                    alert('❌ خطأ في الاتصال بالسيرفر');
+                    alert('خطأ في الاتصال بالسيرفر');
                 }})
-                .finally(() => {{
+                .finally(function() {{
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }});
