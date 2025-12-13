@@ -2598,20 +2598,39 @@ def verify_login():
 
 @app.route('/')
 def index():
-    # التحقق من وجود جلسة مسجلة
-    user_id = session.get('user_id')
-    user_name = session.get('user_name', session.get('first_name', 'ضيف'))
+    # التحقق من جلسة المستخدم
+    user_id = session.get('user_id') or request.args.get('user_id')
+    user_name = session.get('user_name', 'ضيف')
     
-    # إذا كان المستخدم مسجل دخول، جلب رصيده
-    balance = 0
+    # 1. جلب الرصيد (محدث من Firebase)
+    balance = 0.0
     if user_id:
         balance = get_balance(user_id)
     
+    # 2. جلب المنتجات (مباشرة من Firebase لضمان ظهورها)
+    items = []
+    try:
+        # جلب المنتجات التي لم تُبع (sold == False)
+        docs = db.collection('products').where('sold', '==', False).stream()
+        
+        for doc in docs:
+            p = doc.to_dict()
+            p['id'] = doc.id  # مهم جداً لعملية الشراء
+            items.append(p)
+        
+        print(f"✅ تم جلب {len(items)} منتج من Firebase للمتجر")
+            
+    except Exception as e:
+        print(f"❌ خطأ في جلب المنتجات للمتجر: {e}")
+        # في حال الفشل، نعود لاستخدام الذاكرة كاحتياط
+        items = [i for i in marketplace_items if not i.get('sold')]
+
+    # عرض الصفحة
     return render_template_string(HTML_PAGE, 
-                                   items=marketplace_items, 
-                                   balance=balance, 
-                                   current_user_id=user_id or 0,
-                                   user_name=user_name)
+                                  items=items, 
+                                  balance=balance, 
+                                  current_user_id=user_id or 0, 
+                                  user_name=user_name)
 
 @app.route('/get_balance')
 def get_balance_api():
