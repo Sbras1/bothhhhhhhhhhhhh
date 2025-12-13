@@ -1587,7 +1587,7 @@ HTML_PAGE = """
                                 ${isSold ? 
                                     `<button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>` :
                                     (!isMyProduct ? 
-                                        `<button class="product-buy-btn" onclick='buyItem(${allItems.indexOf(item)}, ${item.price}, "${(item.item_name || '').replace(/"/g, '\\"')}", "${(item.category || '').replace(/"/g, '\\"')}", ${JSON.stringify(item.details || '')})'>شراء 🛒</button>` : 
+                                        `<button class="product-buy-btn" onclick='buyItem("${item.id}", ${item.price}, "${(item.item_name || '').replace(/"/g, '\\"')}", "${(item.category || '').replace(/"/g, '\\"')}", ${JSON.stringify(item.details || '')})'>شراء 🛒</button>` : 
                                         `<div class="my-product-badge">منتجك ⭐</div>`)
                                 }
                             </div>
