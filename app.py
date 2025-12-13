@@ -814,21 +814,26 @@ HTML_PAGE = """
             cursor: pointer;
         }
         
+        /* صف الأزرار العلوية */
+        .top-buttons-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
         /* زر حسابي */
         .account-btn {
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
             color: white;
             padding: 10px 16px;
             border-radius: 12px;
-            margin-bottom: 16px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
             transition: all 0.3s;
-            max-width: 180px;
-            margin-left: auto;
+            flex: 1;
         }
         .account-btn:hover {
             transform: translateY(-2px);
@@ -850,6 +855,129 @@ HTML_PAGE = """
         }
         .arrow.open {
             transform: rotate(180deg);
+        }
+        
+        /* زر شحن الكود */
+        .charge-btn {
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+            transition: all 0.3s;
+            flex: 1;
+            justify-content: center;
+        }
+        .charge-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+        }
+        
+        /* أزرار الشحن السريع */
+        .quick-charge-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .quick-charge-btn {
+            flex: 1;
+            min-width: 70px;
+            background: linear-gradient(135deg, #fdcb6e, #f39c12);
+            color: #2d3436;
+            padding: 10px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        .quick-charge-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        }
+        .quick-charge-btn span {
+            display: block;
+            font-size: 11px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        
+        /* نافذة شحن الكود */
+        .charge-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .charge-modal.active {
+            display: flex;
+        }
+        .charge-modal-content {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+        .charge-modal-content h3 {
+            color: #00b894;
+            margin-bottom: 20px;
+        }
+        .charge-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            background: #2d3436;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .charge-input:focus {
+            border-color: #00b894;
+            outline: none;
+        }
+        .charge-submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .charge-cancel-btn {
+            width: 100%;
+            padding: 10px;
+            background: #636e72;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
         }
         
         /* محتوى حسابي */
@@ -1141,13 +1269,52 @@ HTML_PAGE = """
         </div>
     </div>
 
-    <!-- زر حسابي -->
-    <div class="account-btn" onclick="toggleAccount()" id="accountBtn">
-        <div class="account-btn-left">
-            <span class="account-icon">👤</span>
-            <span>حسابي</span>
+    <!-- صف الأزرار العلوية -->
+    <div class="top-buttons-row">
+        <!-- زر حسابي -->
+        <div class="account-btn" onclick="toggleAccount()" id="accountBtn">
+            <div class="account-btn-left">
+                <span class="account-icon">👤</span>
+                <span>حسابي</span>
+            </div>
+            <span class="arrow" id="accountArrow">▼</span>
         </div>
-        <span class="arrow" id="accountArrow">▼</span>
+        
+        <!-- زر شحن الكود -->
+        <div class="charge-btn" onclick="openChargeModal()">
+            <span>💳</span>
+            <span>شحن كود</span>
+        </div>
+    </div>
+    
+    <!-- أزرار الشحن السريع -->
+    <div class="quick-charge-row">
+        <a href="#" class="quick-charge-btn" id="charge20">
+            20 ريال
+            <span>اشتري</span>
+        </a>
+        <a href="#" class="quick-charge-btn" id="charge50">
+            50 ريال
+            <span>اشتري</span>
+        </a>
+        <a href="#" class="quick-charge-btn" id="charge100">
+            100 ريال
+            <span>اشتري</span>
+        </a>
+        <a href="#" class="quick-charge-btn" id="charge150">
+            150 ريال
+            <span>اشتري</span>
+        </a>
+    </div>
+    
+    <!-- نافذة شحن الكود -->
+    <div class="charge-modal" id="chargeModal">
+        <div class="charge-modal-content">
+            <h3>💳 شحن رصيد بالكود</h3>
+            <input type="text" class="charge-input" id="chargeCodeInput" placeholder="أدخل كود الشحن هنا">
+            <button class="charge-submit-btn" onclick="submitChargeCode()">شحن الآن ⚡</button>
+            <button class="charge-cancel-btn" onclick="closeChargeModal()">إلغاء</button>
+        </div>
     </div>
     
     <!-- محتوى حسابي -->
@@ -1468,6 +1635,53 @@ HTML_PAGE = """
             const arrow = document.getElementById("accountArrow");
             content.classList.add("open");
             arrow.classList.add("open");
+        }
+        
+        // دوال شحن الكود
+        function openChargeModal() {
+            // التحقق من تسجيل الدخول
+            if(!isTelegramWebApp && (!currentUserId || currentUserId == 0)) {
+                showLoginModal();
+                return;
+            }
+            document.getElementById('chargeModal').classList.add('active');
+            document.getElementById('chargeCodeInput').focus();
+        }
+        
+        function closeChargeModal() {
+            document.getElementById('chargeModal').classList.remove('active');
+            document.getElementById('chargeCodeInput').value = '';
+        }
+        
+        async function submitChargeCode() {
+            const code = document.getElementById('chargeCodeInput').value.trim();
+            if(!code) {
+                alert('❌ الرجاء إدخال كود الشحن');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/charge_balance', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        charge_key: code
+                    })
+                });
+                
+                const result = await response.json();
+                if(result.success) {
+                    alert('✅ ' + result.message);
+                    userBalance = result.new_balance;
+                    document.getElementById('balance').textContent = userBalance;
+                    closeChargeModal();
+                } else {
+                    alert('❌ ' + result.message);
+                }
+            } catch(error) {
+                alert('❌ حدث خطأ في الاتصال');
+            }
         }
         
         // دالة لفتح/إغلاق قسم حسابي
