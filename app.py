@@ -2899,6 +2899,7 @@ def dashboard():
                 </div>
             </div>
         </div>
+        
     </body>
         <div class="container">
             <div class="header">
@@ -3162,16 +3163,14 @@ def dashboard():
                 const container = document.getElementById('keysContainer');
                 const countText = document.getElementById('keysCount');
                 
-                countText.textContent = `تم توليد ${{keys.length}} مفتاح بقيمة ${{amount}} ريال لكل منها`;
+                countText.textContent = 'تم توليد ' + keys.length + ' مفتاح بقيمة ' + amount + ' ريال لكل منها';
                 
                 container.innerHTML = '';
                 keys.forEach((key, index) => {{
                     const keyItem = document.createElement('div');
                     keyItem.className = 'key-item';
-                    keyItem.innerHTML = `
-                        <div class="key-code">${{key}}</div>
-                        <button class="copy-btn" onclick="copyKey('${{key}}', this)">📋 نسخ</button>
-                    `;
+                    keyItem.innerHTML = '<div class="key-code">' + key + '</div>' +
+                        '<button class="copy-btn" onclick="copyKey(\'' + key + '\', this)">📋 نسخ</button>';
                     container.appendChild(keyItem);
                 }});
                 
