@@ -1320,9 +1320,9 @@ HTML_PAGE = """
             <!-- شحن بكود -->
             <div style="margin-bottom: 20px;">
                 <label style="color: #888; font-size: 13px; display: block; margin-bottom: 8px; text-align: right;">شحن بكود:</label>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="submitChargeCode()" style="padding: 12px 20px; background: linear-gradient(135deg, #00b894, #55efc4); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; white-space: nowrap;">شحن ⚡</button>
-                    <input type="text" id="chargeCodeInput" placeholder="أدخل كود الشحن" style="flex: 1; padding: 12px; border: 2px solid #444; border-radius: 10px; background: #2d3436; color: white; font-size: 14px; text-align: right;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button onclick="submitChargeCode()" style="padding: 12px 20px; background: linear-gradient(135deg, #00b894, #55efc4); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; height: 46px;">شحن ⚡</button>
+                    <input type="text" id="chargeCodeInput" placeholder="أدخل كود الشحن" style="flex: 1; padding: 12px; border: 2px solid #444; border-radius: 10px; background: #2d3436; color: white; font-size: 14px; text-align: right; height: 46px; box-sizing: border-box;">
                 </div>
             </div>
             
