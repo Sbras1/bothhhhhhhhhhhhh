@@ -3441,7 +3441,7 @@ def api_add_balance():
     
     return {'status': 'success'}
 
-# --- API لإضافة منتج (مصحح للحفظ في Firebase) ---
+# --- API لإضافة منتج (مصحح وشامل) ---
 @app.route('/api/add_product', methods=['POST'])
 def api_add_product():
     try:
@@ -3453,11 +3453,10 @@ def api_add_product():
         image = data.get('image', '')
         hidden_data = data.get('hidden_data')
         
-        # التحقق من البيانات
         if not name or not price or not hidden_data:
-            return {'status': 'error', 'message': 'بيانات غير كاملة'}
+            return {'status': 'error', 'message': 'البيانات ناقصة! تأكد من الاسم، السعر، والبيانات المخفية.'}
         
-        # إنشاء بيانات المنتج
+        # إنشاء المنتج
         new_id = str(uuid.uuid4())
         item = {
             'id': new_id,
@@ -3473,13 +3472,13 @@ def api_add_product():
             'created_at': firestore.SERVER_TIMESTAMP
         }
         
-        # 1. الحفظ في Firebase (المهم)
+        # 1. الحفظ في Firebase
         db.collection('products').document(new_id).set(item)
         
-        # 2. تحديث الذاكرة المحلية (للعرض السريع)
+        # 2. تحديث الذاكرة
         marketplace_items.append(item)
         
-        # 3. إشعار المالك (داخل try/except لضمان عدم توقف العملية)
+        # 3. إشعار المالك (مع حماية من الأخطاء)
         try:
             bot.send_message(
                 ADMIN_ID,
@@ -3487,15 +3486,15 @@ def api_add_product():
                 parse_mode="Markdown"
             )
         except Exception as e:
-            print(f"فشل إرسال الإشعار: {e}")
+            print(f"⚠️ فشل إرسال إشعار التليجرام (تم حفظ المنتج بنجاح): {e}")
             
-        return {'status': 'success', 'message': 'تم الحفظ في قاعدة البيانات'}
+        return {'status': 'success', 'message': 'تم الحفظ بنجاح'}
 
     except Exception as e:
-        print(f"Error in add_product: {e}")
-        return {'status': 'error', 'message': f'حدث خطأ في السيرفر: {str(e)}'}
+        print(f"❌ Error in add_product: {e}")
+        return {'status': 'error', 'message': f'خطأ في السيرفر: {str(e)}'}
 
-# --- API لتوليد المفاتيح (مصحح للحفظ في Firebase) ---
+# --- API لتوليد المفاتيح (مصحح وشامل) ---
 @app.route('/api/generate_keys', methods=['POST'])
 def api_generate_keys():
     try:
@@ -3504,15 +3503,13 @@ def api_generate_keys():
         count = int(data.get('count', 1))
         
         if amount <= 0 or count <= 0 or count > 100:
-            return {'status': 'error', 'message': 'أرقام غير صحيحة'}
+            return {'status': 'error', 'message': 'الأرقام غير صحيحة (تأكد من المبلغ والعدد)'}
         
         generated_keys = []
-        batch = db.batch() # استخدام الدفعات للحفظ السريع
+        batch = db.batch()
         
         for _ in range(count):
-            # إنشاء كود عشوائي
             key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
-            
             key_data = {
                 'amount': amount,
                 'used': False,
@@ -3520,7 +3517,7 @@ def api_generate_keys():
                 'created_at': firestore.SERVER_TIMESTAMP
             }
             
-            # تجهيز الحفظ في Firebase
+            # تجهيز الحفظ
             doc_ref = db.collection('charge_keys').document(key_code)
             batch.set(doc_ref, key_data)
             
@@ -3528,13 +3525,13 @@ def api_generate_keys():
             charge_keys[key_code] = key_data
             generated_keys.append(key_code)
             
-        # تنفيذ الحفظ في Firebase دفعة واحدة
+        # تنفيذ الحفظ
         batch.commit()
         
         return {'status': 'success', 'keys': generated_keys}
 
     except Exception as e:
-        print(f"Error generating keys: {e}")
+        print(f"❌ Error generating keys: {e}")
         return {'status': 'error', 'message': f'فشل التوليد: {str(e)}'}
 
 # مسار لتسجيل خروج الآدمن
