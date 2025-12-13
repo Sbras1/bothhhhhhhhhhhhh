@@ -2649,145 +2649,105 @@ def sell_item():
 
 @app.route('/buy', methods=['POST'])
 def buy_item():
-    data = request.json
-    buyer_id = str(data.get('buyer_id'))
-    buyer_name = data.get('buyer_name')
-    item_id = data.get('item_id')
-    
-    # البحث عن المنتج باستخدام UUID
-    item = None
-    item_index = None
-    for idx, product in enumerate(marketplace_items):
-        if product.get('id') == item_id:
-            item = product
-            item_index = idx
-            break
-    
-    if not item:
-        return {'status': 'error', 'message': 'المنتج غير موجود'}
-    
-    # التحقق من أن المنتج لم يُباع بعد
-    if item.get('sold', False):
-        return {'status': 'error', 'message': 'هذا المنتج مباع بالفعل! 🚫'}
-    
-    price = float(item['price'])
-    
-    # 1. التحقق من الرصيد
-    buyer_balance = get_balance(buyer_id)
-    if buyer_balance < price:
-        return {'status': 'error', 'message': 'الرصيد غير كافي'}
-    
-    # 2. خصم الرصيد وتحديث Firebase
-    new_balance = buyer_balance - price
-    users_wallets[buyer_id] = new_balance  # تحديث الذاكرة
-    
     try:
-        # تحديث Firebase (رصيد المشتري)
-        db.collection('users').document(str(buyer_id)).update({'balance': new_balance})
-    except Exception as e:
-        print(f"⚠️ خطأ في تحديث رصيد المشتري في Firebase: {e}")
-    
-    # 3. تحويل المال للبائع فوراً (add_balance يحدث Firebase تلقائياً)
-    add_balance(item['seller_id'], price)
-    
-    # 4. إنشاء معرف فريد للطلب
-    order_id = f"ORD_{random.randint(100000, 999999)}"
-    
-    # 5. حفظ الطلب في Firebase والذاكرة
-    order_data = {
-        'buyer_id': buyer_id,
-        'buyer_name': buyer_name,
-        'item_name': item['item_name'],
-        'price': price,
-        'hidden_data': item.get('hidden_data', ''),
-        'seller_id': item['seller_id'],
-        'seller_name': item['seller_name'],
-        'status': 'completed',
-        'admin_id': str(ADMIN_ID),
-        'created_at': firestore.SERVER_TIMESTAMP
-    }
-    
-    active_orders[order_id] = order_data
-    
-    try:
-        # حفظ الطلب في Firebase
-        db.collection('orders').document(order_id).set(order_data)
-    except Exception as e:
-        print(f"⚠️ خطأ في حفظ الطلب في Firebase: {e}")
-    
-    # 6. تحديث المنتج كمباع في Firebase والذاكرة
-    marketplace_items[item_index]['sold'] = True
-    marketplace_items[item_index]['buyer_name'] = buyer_name
-    
-    if item.get('id'):
-        try:
-            db.collection('products').document(item['id']).update({
-                'sold': True,
-                'buyer_id': str(buyer_id),
-                'buyer_name': buyer_name,
-                'sold_at': firestore.SERVER_TIMESTAMP
-            })
-        except Exception as e:
-            print(f"⚠️ خطأ في تحديث المنتج في Firebase: {e}")
-    
-    # 7. إرسال البيانات المخفية للمشتري فوراً
-    hidden_info = item.get('hidden_data', 'لا توجد بيانات إضافية')
-    
-    message_sent = False
-    try:
-        bot.send_message(
-            int(buyer_id),
-            f"✅ تم الشراء بنجاح!\n\n"
-            f"📦 المنتج: {item['item_name']}\n"
-            f"💰 المبلغ المدفوع: {price} ريال\n"
-            f"🆔 رقم الطلب: #{order_id}\n\n"
-            f"🔐 بيانات الحساب:\n"
-            f"{hidden_info}\n\n"
-            f"✨ استمتع بخدمتك!\n"
-            f"شكراً لاستخدامك متجرنا 🎉"
-        )
-        message_sent = True
-        print(f"✅ تم إرسال البيانات للمشتري {buyer_id}")
-    except Exception as e:
-        print(f"❌ خطأ في إرسال رسالة للمشتري {buyer_id}: {str(e)}")
-        # إذا فشل الإرسال، نخبر المستخدم أن يبدأ محادثة مع البوت
-        return {
-            'status': 'error', 
-            'message': f'تم خصم المبلغ ولكن لم نتمكن من إرسال البيانات!\n\nالرجاء:\n1. افتح البوت @{bot.get_me().username}\n2. اضغط /start\n3. ثم أرسل رقم الطلب: {order_id}'
-        }
-    
-    # 8. إشعار للبائع
-    try:
-        bot.send_message(
-            int(item['seller_id']),
-            f"💰 تم بيع منتجك!\n\n"
-            f"📦 المنتج: {item['item_name']}\n"
-            f"💵 المبلغ: {price} ريال\n"
-            f"👤 المشتري: {buyer_name}\n"
-            f"🆔 رقم الطلب: #{order_id}\n\n"
-            f"✅ تم إضافة المبلغ لرصيدك!"
-        )
-        print(f"✅ تم إرسال إشعار للبائع {item['seller_id']}")
-    except Exception as e:
-        print(f"❌ خطأ في إرسال رسالة للبائع: {str(e)}")
-    
-    # 9. إشعار للمالك
-    try:
-        bot.send_message(
-            ADMIN_ID,
-            f"🔔 عملية شراء جديدة\n\n"
-            f"📦 المنتج: {item['item_name']}\n"
-            f"💰 السعر: {price} ريال\n"
-            f"👤 المشتري: {buyer_name}\n"
-            f"🆔 رقم الطلب: #{order_id}\n\n"
-            f"✅ تم التسليم الفوري\n"
-            f"📊 المنتجات المتبقية: {len(marketplace_items)}"
-        )
-        print(f"✅ تم إرسال إشعار للمالك")
-    except Exception as e:
-        print(f"❌ خطأ في إرسال رسالة للمالك: {str(e)}")
+        data = request.json
+        buyer_id = str(data.get('buyer_id'))
+        buyer_name = data.get('buyer_name')
+        item_id = str(data.get('item_id'))  # تأكد أنه نص
 
-    return {'status': 'success'}
+        # 1. البحث عن المنتج في Firebase مباشرة (أكثر دقة)
+        doc_ref = db.collection('products').document(item_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            return {'status': 'error', 'message': 'المنتج غير موجود أو تم حذفه!'}
+        
+        item = doc.to_dict()
+
+        # 2. التحقق من أن المنتج لم يُباع
+        if item.get('sold', False):
+            return {'status': 'error', 'message': 'عذراً، هذا المنتج تم بيعه للتو! 🚫'}
+
+        price = float(item.get('price', 0))
+
+        # 3. التحقق من رصيد المشتري (من Firebase مباشرة)
+        user_ref = db.collection('users').document(buyer_id)
+        user_doc = user_ref.get()
+        current_balance = user_doc.to_dict().get('balance', 0.0) if user_doc.exists else 0.0
+
+        if current_balance < price:
+            return {'status': 'error', 'message': 'رصيدك غير كافي للشراء!'}
+
+        # 4. تنفيذ العملية (خصم + تحديث حالة المنتج)
+        # نستخدم batch لضمان تنفيذ كل الخطوات معاً أو فشلها معاً
+        batch = db.batch()
+
+        # خصم الرصيد
+        new_balance = current_balance - price
+        batch.update(user_ref, {'balance': new_balance})
+
+        # تحديث المنتج كمباع
+        batch.update(doc_ref, {
+            'sold': True,
+            'buyer_id': buyer_id,
+            'buyer_name': buyer_name,
+            'sold_at': firestore.SERVER_TIMESTAMP
+        })
+
+        # حفظ الطلب
+        order_id = f"ORD_{random.randint(100000, 999999)}"
+        order_ref = db.collection('orders').document(order_id)
+        batch.set(order_ref, {
+            'buyer_id': buyer_id,
+            'buyer_name': buyer_name,
+            'item_name': item.get('item_name'),
+            'price': price,
+            'hidden_data': item.get('hidden_data'),
+            'seller_id': item.get('seller_id'),
+            'status': 'completed',
+            'created_at': firestore.SERVER_TIMESTAMP
+        })
+
+        # تنفيذ التغييرات
+        batch.commit()
+
+        # 5. تحديث الذاكرة المحلية (اختياري لكن جيد للسرعة)
+        users_wallets[buyer_id] = new_balance
+        # البحث عن المنتج في القائمة المحلية وتحديثه
+        for prod in marketplace_items:
+            if prod.get('id') == item_id:
+                prod['sold'] = True
+                break
+
+        # 6. إرسال المنتج للمشتري
+        try:
+            hidden_info = item.get('hidden_data', 'لا توجد بيانات')
+            bot.send_message(
+                int(buyer_id),
+                f"✅ **تم الشراء بنجاح!**\n\n"
+                f"📦 المنتج: {item.get('item_name')}\n"
+                f"💰 السعر: {price} ريال\n"
+                f"🆔 رقم الطلب: #{order_id}\n\n"
+                f"🔐 **بياناتك:**\n`{hidden_info}`",
+                parse_mode="Markdown"
+            )
+            
+            # إشعار للمالك
+            bot.send_message(
+                ADMIN_ID,
+                f"🔔 **عملية بيع جديدة!**\n"
+                f"📦 المنتج: {item.get('item_name')}\n"
+                f"👤 المشتري: {buyer_name}\n"
+                f"💰 السعر: {price} ريال"
+            )
+        except Exception as e:
+            print(f"⚠️ فشل إرسال الرسالة: {e}")
+
+        return {'status': 'success'}
+
+    except Exception as e:
+        print(f"❌ Error in buy_item: {e}")
+        return {'status': 'error', 'message': 'حدث خطأ أثناء الشراء، حاول مرة أخرى.'}
 
 # لاستقبال تحديثات تيليجرام (Webhook)
 @app.route('/webhook', methods=['POST'])
