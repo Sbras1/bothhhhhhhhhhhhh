@@ -9,6 +9,7 @@ import json
 import random
 import hashlib
 import time
+import uuid
 
 # --- إعدادات البوت ---
 # غير هذا الرقم إلى الآيدي الخاص بك في تيليجرام لتتمكن من شحن الأرصدة
@@ -69,6 +70,12 @@ def add_balance(user_id, amount):
     if uid not in users_wallets:
         users_wallets[uid] = 0.0
     users_wallets[uid] += float(amount)
+
+# إضافة UUID للمنتجات الموجودة (إذا لم يكن لديها ID)
+def ensure_product_ids():
+    for item in marketplace_items:
+        if 'id' not in item:
+            item['id'] = str(uuid.uuid4())
 
 # دالة لتوليد كود تحقق عشوائي
 def generate_verification_code(user_id, user_name):
@@ -1159,7 +1166,7 @@ HTML_PAGE = """
                     {% if item.get('sold') %}
                         <button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>
                     {% elif item.seller_id|string != current_user_id|string %}
-                        <button class="product-buy-btn" onclick='buyItem({{ loop.index0 }}, {{ item.price }}, "{{ item.item_name|replace('"', '\\"') }}", "{{ item.get('category', '')|replace('"', '\\"') }}", {{ item.get('details', '')|tojson }})'>شراء 🛒</button>
+                        <button class="product-buy-btn" onclick='buyItem("{{ item.id }}", {{ item.price }}, "{{ item.item_name|replace('"', '\\"') }}", "{{ item.get('category', '')|replace('"', '\\"') }}", {{ item.get('details', '')|tojson }})'>شراء 🛒</button>
                     {% else %}
                         <div class="my-product-badge">منتجك ⭐</div>
                     {% endif %}
@@ -1408,7 +1415,7 @@ HTML_PAGE = """
 
         let currentPurchaseData = null;
         
-        function buyItem(itemIndex, price, itemName, category, details) {
+        function buyItem(itemId, price, itemName, category, details) {
             // التحقق من الرصيد أولاً
             if(userBalance < price) {
                 showWarningModal(price);
@@ -1431,7 +1438,7 @@ HTML_PAGE = """
 
             // حفظ بيانات الشراء
             currentPurchaseData = {
-                itemIndex: itemIndex,
+                itemId: itemId,
                 buyerId: buyerId,
                 buyerName: buyerName
             };
@@ -1458,7 +1465,7 @@ HTML_PAGE = """
                 body: JSON.stringify({
                     buyer_id: currentPurchaseData.buyerId,
                     buyer_name: currentPurchaseData.buyerName,
-                    item_index: currentPurchaseData.itemIndex
+                    item_id: currentPurchaseData.itemId
                 })
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
@@ -1833,6 +1840,7 @@ def confirm_add_product(message):
         if product:
             # إضافة المنتج
             item = {
+                'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
                 'item_name': product['item_name'],
                 'price': product['price'],
                 'seller_id': str(ADMIN_ID),
@@ -2363,6 +2371,7 @@ def sell_item():
     
     # حفظ البيانات المخفية بشكل آمن
     item = {
+        'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
         'item_name': data.get('item_name'),
         'price': data.get('price'),
         'seller_id': seller_id,
@@ -2379,12 +2388,19 @@ def buy_item():
     data = request.json
     buyer_id = str(data.get('buyer_id'))
     buyer_name = data.get('buyer_name')
-    item_index = int(data.get('item_index'))
+    item_id = data.get('item_id')
     
-    if item_index >= len(marketplace_items):
+    # البحث عن المنتج باستخدام UUID
+    item = None
+    item_index = None
+    for idx, product in enumerate(marketplace_items):
+        if product.get('id') == item_id:
+            item = product
+            item_index = idx
+            break
+    
+    if not item:
         return {'status': 'error', 'message': 'المنتج غير موجود'}
-    
-    item = marketplace_items[item_index]
     
     # التحقق من أن المنتج لم يُباع بعد
     if item.get('sold', False):
@@ -3008,6 +3024,7 @@ def api_add_product():
     
     # إضافة المنتج
     item = {
+        'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
         'item_name': name,
         'price': str(price),
         'seller_id': str(ADMIN_ID),
@@ -3059,6 +3076,9 @@ def api_generate_keys():
     return {{'status': 'success', 'keys': generated_keys}}
 
 if __name__ == "__main__":
+    # التأكد من أن جميع المنتجات لديها UUID
+    ensure_product_ids()
+    
     # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
