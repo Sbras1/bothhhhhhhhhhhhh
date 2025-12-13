@@ -3338,6 +3338,10 @@ def dashboard():
                     }} else {{
                         alert('❌ ' + data.message);
                     }}
+                }})
+                .catch(err => {{
+                    console.error('خطأ في إضافة المنتج:', err);
+                    alert('❌ حدث خطأ في الاتصال بالسيرفر. الرجاء المحاولة مرة أخرى.');
                 }});
             }}
             
@@ -3362,6 +3366,10 @@ def dashboard():
                     }} else {{
                         alert('❌ ' + data.message);
                     }}
+                }})
+                .catch(err => {{
+                    console.error('خطأ في توليد المفاتيح:', err);
+                    alert('❌ حدث خطأ في الاتصال بالسيرفر. الرجاء المحاولة مرة أخرى.');
                 }});
             }}
             
