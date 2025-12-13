@@ -2898,8 +2898,11 @@ def dashboard():
         </div>
         
         <script>
+            console.log('Dashboard Script Loading...');
+            
             // Dashboard Control Panel Functions v2.0
             window.addBalance = function() {{
+                console.log('addBalance called');
                 const userId = document.getElementById('userId').value;
                 const amount = document.getElementById('amount').value;
                 
@@ -2988,6 +2991,7 @@ def dashboard():
             }};
             
             window.generateKeys = function() {{
+                console.log('generateKeys called');
                 const amount = document.getElementById('keyAmount').value;
                 const count = document.getElementById('keyCount').value;
                 
@@ -3068,6 +3072,12 @@ def dashboard():
                     closeKeysModal();
                 }}
             }};
+            
+            console.log('All functions loaded:', {{
+                addBalance: typeof window.addBalance,
+                addProduct: typeof window.addProduct,
+                generateKeys: typeof window.generateKeys
+            }});
         </script>
     </body>
     </html>
