@@ -107,8 +107,9 @@ def add_balance(user_id, amount):
             'telegram_id': uid,
             'updated_at': firestore.SERVER_TIMESTAMP
         }, merge=True)
+        print(f"✅ تم حفظ رصيد المستخدم {uid}: {users_wallets[uid]} ريال في Firestore")
     except Exception as e:
-        print(f"⚠️ خطأ في حفظ الرصيد إلى Firebase: {e}")
+        print(f"❌ خطأ في حفظ الرصيد إلى Firebase: {e}")
 
 # إضافة UUID للمنتجات الموجودة (إذا لم يكن لديها ID)
 def ensure_product_ids():
@@ -196,21 +197,25 @@ def load_data_from_firebase():
         print("📥 بدء تحميل البيانات من Firebase...")
         
         # 1. تحميل المنتجات (غير المباعة فقط)
+        print("🔄 جاري تحميل المنتجات من Firestore...")
         products_ref = db.collection('products').where('sold', '==', False)
         marketplace_items = []
         for doc in products_ref.stream():
             data = doc.to_dict()
             data['id'] = doc.id
             marketplace_items.append(data)
-        print(f"✅ تم تحميل {len(marketplace_items)} منتج")
+            print(f"  📦 منتج: {data.get('item_name', 'بدون اسم')} - {data.get('price', 0)} ريال")
+        print(f"✅ تم تحميل {len(marketplace_items)} منتج من Firestore")
         
         # 2. تحميل أرصدة المستخدمين
+        print("🔄 جاري تحميل المستخدمين من Firestore...")
         users_ref = db.collection('users')
         users_wallets = {}
         for doc in users_ref.stream():
             data = doc.to_dict()
             users_wallets[doc.id] = data.get('balance', 0.0)
-        print(f"✅ تم تحميل {len(users_wallets)} مستخدم")
+            print(f"  👤 مستخدم {doc.id}: {data.get('balance', 0)} ريال")
+        print(f"✅ تم تحميل {len(users_wallets)} مستخدم من Firestore")
         
         # 3. تحميل مفاتيح الشحن (غير المستخدمة فقط)
         keys_ref = db.collection('charge_keys').where('used', '==', False)
@@ -2039,20 +2044,33 @@ def confirm_add_product(message):
             item = {
                 'id': product_id,
                 'item_name': product['item_name'],
-                'price': product['price'],
+                'price': str(product['price']),
                 'seller_id': str(ADMIN_ID),
                 'seller_name': 'المالك',
                 'hidden_data': product['hidden_data'],
                 'category': product['category'],
                 'details': product['details'],
-                'image_url': product['image_url']
+                'image_url': product['image_url'],
+                'sold': False
             }
             
             # حفظ في Firebase أولاً
             try:
-                db.collection('products').document(product_id).set(item)
+                db.collection('products').document(product_id).set({
+                    'item_name': item['item_name'],
+                    'price': float(product['price']),
+                    'seller_id': str(ADMIN_ID),
+                    'seller_name': 'المالك',
+                    'hidden_data': item['hidden_data'],
+                    'category': item['category'],
+                    'details': item['details'],
+                    'image_url': item['image_url'],
+                    'sold': False,
+                    'created_at': firestore.SERVER_TIMESTAMP
+                })
+                print(f"✅ تم حفظ المنتج {product_id} في Firebase")
             except Exception as e:
-                print(f"خطأ في حفظ المنتج في Firebase: {e}")
+                print(f"❌ خطأ في حفظ المنتج في Firebase: {e}")
             
             # حفظ في الذاكرة
             marketplace_items.append(item)
@@ -3489,9 +3507,11 @@ def api_add_product():
         
         # 1. الحفظ في Firebase (المهم)
         db.collection('products').document(new_id).set(item)
+        print(f"✅ تم حفظ المنتج {new_id} في Firestore: {name}")
         
         # 2. تحديث الذاكرة المحلية (للعرض السريع)
         marketplace_items.append(item)
+        print(f"✅ تم إضافة المنتج للذاكرة. إجمالي المنتجات: {len(marketplace_items)}")
         
         # 3. إشعار المالك (داخل try/except لضمان عدم توقف العملية)
         try:
