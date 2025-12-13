@@ -2626,19 +2626,76 @@ def dashboard():
         return render_template_string(LOGIN_HTML, error="")
     
     # 3. المستخدم مسجل دخول -> عرض لوحة التحكم
-    # حساب الإحصائيات
-    total_users = len(users_wallets)
-    total_products = len(marketplace_items)
-    available_products = len([p for p in marketplace_items if not p.get('sold')])
-    sold_products = len([p for p in marketplace_items if p.get('sold')])
-    total_orders = len(active_orders)
-    active_keys = len([k for k, v in charge_keys.items() if not v['used']])
-    used_keys = len([k for k, v in charge_keys.items() if v['used']])
-    total_balance = sum(users_wallets.values())
     
-    # آخر 10 طلبات
-    recent_orders = list(active_orders.items())[-10:]
-    recent_orders.reverse()
+    # --- جلب الإحصائيات الحقيقية من Firebase ---
+    try:
+        # عدد المستخدمين
+        users_ref = db.collection('users')
+        total_users = len(list(users_ref.stream()))
+        
+        # مجموع الأرصدة (يحتاج لعمل Loop)
+        total_balance = 0
+        for user in users_ref.stream():
+            total_balance += user.to_dict().get('balance', 0)
+
+        # المنتجات
+        products_ref = db.collection('products')
+        all_products = list(products_ref.stream())
+        total_products = len(all_products)
+        
+        # حساب المباع والمتاح
+        sold_products = 0
+        available_products = 0
+        for p in all_products:
+            p_data = p.to_dict()
+            if p_data.get('sold'):
+                sold_products += 1
+            else:
+                available_products += 1
+                
+        # الطلبات (Orders)
+        orders_ref = db.collection('orders')
+        # نجلب آخر 10 طلبات فقط للعرض
+        recent_orders_docs = orders_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(10).stream()
+        recent_orders = []
+        for doc in recent_orders_docs:
+            data = doc.to_dict()
+            # تنسيق البيانات للعرض في الجدول
+            recent_orders.append((
+                doc.id[:8], # رقم طلب قصير
+                {
+                    'item_name': data.get('item_name', 'منتج'),
+                    'price': data.get('price', 0),
+                    'buyer_name': data.get('buyer_name', 'مشتري')
+                }
+            ))
+
+        # المفاتيح - نستخدم charge_keys في الذاكرة حالياً
+        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
+        used_keys = len([k for k, v in charge_keys.items() if v['used']])
+        
+        # إجمالي الطلبات
+        total_orders = len(list(orders_ref.stream()))
+        
+        # جلب آخر 20 مستخدم للعرض في الجدول
+        users_list = []
+        for user_doc in users_ref.limit(20).stream():
+            user_data = user_doc.to_dict()
+            users_list.append((user_doc.id, user_data.get('balance', 0)))
+
+    except Exception as e:
+        print(f"Error loading stats from Firebase: {e}")
+        # قيم افتراضية عند الخطأ
+        total_users = 0
+        total_balance = 0
+        total_products = 0
+        available_products = 0
+        sold_products = 0
+        total_orders = 0
+        recent_orders = []
+        users_list = []
+        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
+        used_keys = len([k for k, v in charge_keys.items() if v['used']])
     
     return f"""
     <!DOCTYPE html>
@@ -3014,7 +3071,7 @@ def dashboard():
                             <td>{user_id}</td>
                             <td>{balance:.2f} ريال</td>
                         </tr>
-                        ''' for user_id, balance in list(users_wallets.items())[:20]]) if users_wallets else '<tr><td colspan="2" style="text-align: center;">لا يوجد مستخدمين</td></tr>'}
+                        ''' for user_id, balance in users_list]) if users_list else '<tr><td colspan="2" style="text-align: center;">لا يوجد مستخدمين</td></tr>'}
                     </tbody>
                 </table>
             </div>
