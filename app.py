@@ -1985,8 +1985,9 @@ def confirm_add_product(message):
         
         if product:
             # إضافة المنتج
+            product_id = str(uuid.uuid4())  # رقم فريد لا يتكرر
             item = {
-                'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
+                'id': product_id,
                 'item_name': product['item_name'],
                 'price': product['price'],
                 'seller_id': str(ADMIN_ID),
@@ -1996,6 +1997,14 @@ def confirm_add_product(message):
                 'details': product['details'],
                 'image_url': product['image_url']
             }
+            
+            # حفظ في Firebase أولاً
+            try:
+                db.collection('products').document(product_id).set(item)
+            except Exception as e:
+                print(f"خطأ في حفظ المنتج في Firebase: {e}")
+            
+            # حفظ في الذاكرة
             marketplace_items.append(item)
             
             bot.reply_to(message,
