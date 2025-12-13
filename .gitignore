@@ -40,3 +40,8 @@ Thumbs.db
 # ملفات البيئة
 .env
 .env.local
+
+# ملفات Firebase (حساسة - لا ترفعها أبداً)
+serviceAccountKey.json
+*firebase*.json
+*adminsdk*.json
