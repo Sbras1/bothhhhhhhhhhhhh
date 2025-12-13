@@ -980,14 +980,14 @@ HTML_PAGE = """
             cursor: pointer;
         }
         
-        /* محتوى حسابي */
+        /* محتوى حسابي والشحن */
         .account-content {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease;
+            transition: max-height 0.4s ease;
         }
         .account-content.open {
-            max-height: 500px;
+            max-height: 600px;
         }
         .account-details {
             background: var(--card-bg);
@@ -1281,39 +1281,12 @@ HTML_PAGE = """
         </div>
         
         <!-- زر شحن الكود -->
-        <div class="charge-btn" onclick="openChargeModal()">
-            <span>💳</span>
-            <span>شحن كود</span>
-        </div>
-    </div>
-    
-    <!-- أزرار الشحن السريع -->
-    <div class="quick-charge-row">
-        <a href="#" class="quick-charge-btn" id="charge20">
-            20 ريال
-            <span>اشتري</span>
-        </a>
-        <a href="#" class="quick-charge-btn" id="charge50">
-            50 ريال
-            <span>اشتري</span>
-        </a>
-        <a href="#" class="quick-charge-btn" id="charge100">
-            100 ريال
-            <span>اشتري</span>
-        </a>
-        <a href="#" class="quick-charge-btn" id="charge150">
-            150 ريال
-            <span>اشتري</span>
-        </a>
-    </div>
-    
-    <!-- نافذة شحن الكود -->
-    <div class="charge-modal" id="chargeModal">
-        <div class="charge-modal-content">
-            <h3>💳 شحن رصيد بالكود</h3>
-            <input type="text" class="charge-input" id="chargeCodeInput" placeholder="أدخل كود الشحن هنا">
-            <button class="charge-submit-btn" onclick="submitChargeCode()">شحن الآن ⚡</button>
-            <button class="charge-cancel-btn" onclick="closeChargeModal()">إلغاء</button>
+        <div class="charge-btn" onclick="toggleCharge()" id="chargeBtn">
+            <div class="account-btn-left">
+                <span>💳</span>
+                <span>شحن كود</span>
+            </div>
+            <span class="arrow" id="chargeArrow">▼</span>
         </div>
     </div>
     
@@ -1336,6 +1309,45 @@ HTML_PAGE = """
             <button class="orders-btn" onclick="toggleOrders()">📦 طلباتي</button>
             
             <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
+        </div>
+    </div>
+    
+    <!-- محتوى شحن الكود -->
+    <div class="account-content" id="chargeContent">
+        <div class="account-details" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1), rgba(85, 239, 196, 0.1)); border: 1px solid rgba(0, 184, 148, 0.3);">
+            <h4 style="color: #00b894; margin: 0 0 15px 0; text-align: center;">💳 شحن رصيدك</h4>
+            
+            <!-- شحن بكود -->
+            <div style="margin-bottom: 20px;">
+                <label style="color: #888; font-size: 13px; display: block; margin-bottom: 8px;">شحن بكود:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chargeCodeInput" placeholder="أدخل كود الشحن" style="flex: 1; padding: 12px; border: 2px solid #444; border-radius: 10px; background: #2d3436; color: white; font-size: 14px;">
+                    <button onclick="submitChargeCode()" style="padding: 12px 20px; background: linear-gradient(135deg, #00b894, #55efc4); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">شحن ⚡</button>
+                </div>
+            </div>
+            
+            <!-- أزرار الشحن السريع -->
+            <div>
+                <label style="color: #888; font-size: 13px; display: block; margin-bottom: 10px;">شراء رصيد:</label>
+                <div class="quick-charge-row">
+                    <a href="#" class="quick-charge-btn" id="charge20">
+                        20 ريال
+                        <span>اشتري</span>
+                    </a>
+                    <a href="#" class="quick-charge-btn" id="charge50">
+                        50 ريال
+                        <span>اشتري</span>
+                    </a>
+                    <a href="#" class="quick-charge-btn" id="charge100">
+                        100 ريال
+                        <span>اشتري</span>
+                    </a>
+                    <a href="#" class="quick-charge-btn" id="charge150">
+                        150 ريال
+                        <span>اشتري</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -1637,20 +1649,27 @@ HTML_PAGE = """
             arrow.classList.add("open");
         }
         
-        // دوال شحن الكود
-        function openChargeModal() {
+        // دالة لفتح/إغلاق قسم شحن الكود
+        function toggleCharge() {
             // التحقق من تسجيل الدخول
             if(!isTelegramWebApp && (!currentUserId || currentUserId == 0)) {
                 showLoginModal();
                 return;
             }
-            document.getElementById('chargeModal').classList.add('active');
-            document.getElementById('chargeCodeInput').focus();
-        }
-        
-        function closeChargeModal() {
-            document.getElementById('chargeModal').classList.remove('active');
-            document.getElementById('chargeCodeInput').value = '';
+            
+            // إغلاق قسم حسابي إذا كان مفتوحاً
+            const accountContent = document.getElementById("accountContent");
+            const accountArrow = document.getElementById("accountArrow");
+            if(accountContent.classList.contains("open")) {
+                accountContent.classList.remove("open");
+                accountArrow.classList.remove("open");
+            }
+            
+            // فتح/إغلاق قسم الشحن
+            const chargeContent = document.getElementById("chargeContent");
+            const chargeArrow = document.getElementById("chargeArrow");
+            chargeContent.classList.toggle("open");
+            chargeArrow.classList.toggle("open");
         }
         
         async function submitChargeCode() {
@@ -1675,7 +1694,7 @@ HTML_PAGE = """
                     alert('✅ ' + result.message);
                     userBalance = result.new_balance;
                     document.getElementById('balance').textContent = userBalance;
-                    closeChargeModal();
+                    document.getElementById('chargeCodeInput').value = '';
                 } else {
                     alert('❌ ' + result.message);
                 }
@@ -1691,6 +1710,14 @@ HTML_PAGE = """
                 // توجيهه لصفحة تسجيل الدخول المدمجة
                 showLoginModal();
                 return;
+            }
+            
+            // إغلاق قسم الشحن إذا كان مفتوحاً
+            const chargeContent = document.getElementById("chargeContent");
+            const chargeArrow = document.getElementById("chargeArrow");
+            if(chargeContent.classList.contains("open")) {
+                chargeContent.classList.remove("open");
+                chargeArrow.classList.remove("open");
             }
             
             // إذا كان مسجل دخول، افتح/أغلق القسم
