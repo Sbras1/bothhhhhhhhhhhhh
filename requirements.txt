@@ -1,7 +1,7 @@
 # قائمة المكتبات المطلوبة للمشروع
 # لتثبيت المكتبات استخدم: pip install -r requirements.txt
 
-Flask
 pyTelegramBotAPI
-gunicorn
+Flask
 firebase-admin
+gunicorn
