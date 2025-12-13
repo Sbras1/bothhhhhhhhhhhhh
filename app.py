@@ -1397,9 +1397,33 @@ HTML_PAGE = """
             <h3 style="margin: 0; color: #e74c3c;">✅ المنتجات المباعة</h3>
             <span style="background: #e74c3c; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ sold_items|length }}</span>
         </div>
-        <div class="product-grid">
+        
+        <!-- أزرار فئات المنتجات المباعة -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;" id="soldCategoryButtons">
+            <button onclick="filterSoldCategory('all')" class="sold-cat-btn active" data-cat="all" style="background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold;">
+                📦 الكل ({{ sold_items|length }})
+            </button>
+            {% set categories = {} %}
             {% for item in sold_items %}
-            <div class="product-card sold-product" style="opacity: 0.7;">
+                {% if item.get('category') %}
+                    {% if item.category not in categories %}
+                        {% set _ = categories.update({item.category: 1}) %}
+                    {% else %}
+                        {% set _ = categories.update({item.category: categories[item.category] + 1}) %}
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            {% for cat, count in categories.items() %}
+            <button onclick="filterSoldCategory('{{ cat }}')" class="sold-cat-btn" data-cat="{{ cat }}" style="background: #444; color: white; border: none; padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer;">
+                {% if cat == 'نتفلكس' %}🎬{% elif cat == 'شاهد' %}📺{% elif cat == 'ديزني بلس' %}🏰{% elif cat == 'اوسن بلس' %}🎭{% elif cat == 'فديو بريميم' %}🎥{% else %}📦{% endif %}
+                {{ cat }} ({{ count }})
+            </button>
+            {% endfor %}
+        </div>
+        
+        <div class="product-grid" id="soldProductsGrid">
+            {% for item in sold_items %}
+            <div class="product-card sold-product sold-item-card" data-category="{{ item.get('category', '') }}" style="opacity: 0.7;">
                 <div class="sold-ribbon">مباع ✓</div>
                 <div class="product-image">
                     {% if item.get('image_url') %}
@@ -1430,6 +1454,28 @@ HTML_PAGE = """
         </div>
     </div>
     {% endif %}
+
+    <script>
+        // دالة تصفية المنتجات المباعة حسب الفئة
+        function filterSoldCategory(category) {
+            // تحديث الأزرار
+            document.querySelectorAll('.sold-cat-btn').forEach(btn => {
+                btn.style.background = '#444';
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.sold-cat-btn[data-cat="${category}"]`).style.background = '#e74c3c';
+            document.querySelector(`.sold-cat-btn[data-cat="${category}"]`).classList.add('active');
+            
+            // تصفية المنتجات
+            document.querySelectorAll('.sold-item-card').forEach(card => {
+                if(category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
 
     <script>
         let tg = window.Telegram.WebApp;
