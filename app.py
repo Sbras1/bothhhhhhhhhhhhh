@@ -2671,34 +2671,30 @@ LOGIN_HTML = """
 </html>
 """
 
-# لوحة التحكم للمالك (محدثة بنظام Session آمن)
+# لوحة التحكم للمالك (محدثة ومصححة)
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    # 1. إذا أرسل المستخدم الباسورد (ضغط زر دخول)
+    # 1. تسجيل الدخول
     if request.method == 'POST':
         password = request.form.get('pass', '')
         admin_password = os.environ.get('ADMIN_PASS', 'admin123')
         
         if password == admin_password:
-            session['is_admin'] = True  # حفظ حالة الدخول في الجلسة
-            return redirect('/dashboard')  # إعادة توجيه لرابط نظيف
+            session['is_admin'] = True
+            return redirect('/dashboard')
         else:
             return render_template_string(LOGIN_HTML, error="❌ كلمة مرور خاطئة!")
-    
-    # 2. إذا كان المستخدم مسجل دخول مسبقاً (في الجلسة)
+
     if not session.get('is_admin'):
-        # إذا لم يكن مسجل دخول -> عرض صفحة الدخول
         return render_template_string(LOGIN_HTML, error="")
-    
-    # 3. المستخدم مسجل دخول -> عرض لوحة التحكم
-    
-    # --- جلب الإحصائيات الحقيقية من Firebase ---
+
+    # 2. جلب الإحصائيات (مع حماية من الأخطاء)
     try:
-        # عدد المستخدمين
+        # المستخدمين
         users_ref = db.collection('users')
         total_users = len(list(users_ref.stream()))
         
-        # مجموع الأرصدة (يحتاج لعمل Loop)
+        # الرصيد
         total_balance = 0
         for user in users_ref.stream():
             total_balance += user.to_dict().get('balance', 0)
@@ -2708,331 +2704,68 @@ def dashboard():
         all_products = list(products_ref.stream())
         total_products = len(all_products)
         
-        # حساب المباع والمتاح
-        sold_products = 0
-        available_products = 0
-        for p in all_products:
-            p_data = p.to_dict()
-            if p_data.get('sold'):
-                sold_products += 1
-            else:
-                available_products += 1
-                
-        # الطلبات (Orders)
-        orders_ref = db.collection('orders')
-        # نجلب آخر 10 طلبات فقط للعرض
-        recent_orders_docs = orders_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(10).stream()
-        recent_orders = []
-        for doc in recent_orders_docs:
-            data = doc.to_dict()
-            # تنسيق البيانات للعرض في الجدول
-            recent_orders.append((
-                doc.id[:8], # رقم طلب قصير
-                {
-                    'item_name': data.get('item_name', 'منتج'),
-                    'price': data.get('price', 0),
-                    'buyer_name': data.get('buyer_name', 'مشتري')
-                }
-            ))
+        sold_products = sum(1 for p in all_products if p.to_dict().get('sold'))
+        available_products = total_products - sold_products
+        
+        # المفاتيح
+        keys_ref = db.collection('charge_keys')
+        all_keys = list(keys_ref.stream())
+        active_keys = sum(1 for k in all_keys if not k.to_dict().get('used'))
+        used_keys = len(all_keys) - active_keys
 
-        # المفاتيح - نستخدم charge_keys في الذاكرة حالياً
-        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
-        used_keys = len([k for k, v in charge_keys.items() if v['used']])
-        
-        # إجمالي الطلبات
-        total_orders = len(list(orders_ref.stream()))
-        
-        # جلب آخر 20 مستخدم للعرض في الجدول
+        # الطلبات الأخيرة
+        recent_orders = []
+        orders_ref = db.collection('orders').order_by('created_at', direction=firestore.Query.DESCENDING).limit(10).stream()
+        for doc in orders_ref:
+            d = doc.to_dict()
+            recent_orders.append((doc.id[:8], d))
+
+        # قائمة المستخدمين (للعرض)
         users_list = []
-        for user_doc in users_ref.limit(20).stream():
-            user_data = user_doc.to_dict()
-            users_list.append((user_doc.id, user_data.get('balance', 0)))
+        for u in users_ref.limit(20).stream():
+            users_list.append((u.id, u.to_dict().get('balance', 0)))
 
     except Exception as e:
-        print(f"Error loading stats from Firebase: {e}")
-        # قيم افتراضية عند الخطأ
-        total_users = 0
-        total_balance = 0
-        total_products = 0
-        available_products = 0
-        sold_products = 0
-        total_orders = 0
+        print(f"Stats Error: {e}")
+        total_users = total_balance = total_products = sold_products = available_products = active_keys = used_keys = 0
         recent_orders = []
         users_list = []
-        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
-        used_keys = len([k for k, v in charge_keys.items() if v['used']])
-    
+
+    # 3. عرض الصفحة (HTML + JS المصحح)
     return f"""
     <!DOCTYPE html>
     <html dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>لوحة التحكم - المالك</title>
+        <title>لوحة التحكم</title>
         <style>
-            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-                min-height: 100vh;
-                padding: 20px;
-                color: #333;
-            }}
-            .container {{
-                max-width: 1400px;
-                margin: 0 auto;
-            }}
-            .header {{
-                background: white;
-                padding: 20px 30px;
-                border-radius: 15px;
-                margin-bottom: 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            }}
-            .header h1 {{ color: #667eea; font-size: 28px; }}
-            .logout-btn {{
-                background: #e74c3c;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: bold;
-            }}
-            .stats-grid {{
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin-bottom: 20px;
-            }}
-            .stat-card {{
-                background: white;
-                padding: 20px;
-                border-radius: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-                text-align: center;
-            }}
-            .stat-card .icon {{ font-size: 40px; margin-bottom: 10px; }}
-            .stat-card .value {{ font-size: 32px; font-weight: bold; color: #667eea; }}
-            .stat-card .label {{ color: #888; margin-top: 5px; }}
-            .section {{
-                background: white;
-                padding: 25px;
-                border-radius: 15px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            }}
-            .section h2 {{ color: #667eea; margin-bottom: 20px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-            }}
-            th, td {{
-                padding: 12px;
-                text-align: right;
-                border-bottom: 1px solid #ddd;
-            }}
-            th {{
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                color: white;
-                font-weight: bold;
-            }}
-            tr:hover {{ background: #f5f5f5; }}
-            .badge {{
-                display: inline-block;
-                padding: 5px 12px;
-                border-radius: 15px;
-                font-size: 12px;
-                font-weight: bold;
-            }}
-            .badge-success {{ background: #00b894; color: white; }}
-            .badge-danger {{ background: #e74c3c; color: white; }}
-            .badge-warning {{ background: #fdcb6e; color: #333; }}
-            .badge-info {{ background: #74b9ff; color: white; }}
-            .tools {{
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 15px;
-            }}
-            .tool-box {{
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 10px;
-                border-left: 4px solid #667eea;
-            }}
-            .tool-box h3 {{ color: #667eea; margin-bottom: 15px; }}
-            .tool-box input, .tool-box select {{
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #ddd;
-                border-radius: 8px;
-                margin-bottom: 10px;
-            }}
-            .tool-box button {{
-                width: 100%;
-                padding: 12px;
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                cursor: pointer;
-            }}
-            .tool-box button:hover {{ opacity: 0.9; }}
-            
-            /* نافذة عرض المفاتيح */
-            .keys-modal {{
-                display: none;
-                position: fixed;
-                z-index: 9999;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.8);
-                animation: fadeIn 0.3s;
-            }}
-            .keys-modal-content {{
-                background: white;
-                margin: 5% auto;
-                padding: 0;
-                border-radius: 15px;
-                max-width: 500px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                animation: slideDown 0.3s;
-            }}
-            .keys-modal-header {{
-                background: linear-gradient(135deg, #667eea, #764ba2);
-                padding: 20px;
-                border-radius: 15px 15px 0 0;
-                color: white;
-                text-align: center;
-            }}
-            .keys-modal-body {{
-                padding: 20px;
-            }}
-            .key-item {{
-                background: #f8f9fa;
-                padding: 12px;
-                border-radius: 8px;
-                margin-bottom: 10px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-left: 4px solid #667eea;
-            }}
-            .key-code {{
-                font-family: monospace;
-                font-size: 14px;
-                color: #333;
-                font-weight: bold;
-                flex: 1;
-                word-break: break-all;
-            }}
-            .copy-btn {{
-                background: #00b894;
-                color: white;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 12px;
-                font-weight: bold;
-                margin-left: 10px;
-                transition: all 0.3s;
-            }}
-            .copy-btn:hover {{ background: #00a383; }}
-            .copy-btn.copied {{
-                background: #fdcb6e;
-                color: #333;
-            }}
-            .keys-modal-footer {{
-                padding: 15px 20px;
-                text-align: center;
-                border-top: 1px solid #ddd;
-            }}
-            .close-modal-btn {{
-                background: #e74c3c;
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: bold;
-                font-size: 14px;
-            }}
-            @keyframes fadeIn {{
-                from {{ opacity: 0; }}
-                to {{ opacity: 1; }}
-            }}
-            @keyframes slideDown {{
-                from {{ transform: translateY(-50px); opacity: 0; }}
-                to {{ transform: translateY(0); opacity: 1; }}
-            }}
+            body {{ font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }}
+            .container {{ max-width: 1200px; margin: 0 auto; }}
+            .header {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }}
+            .card {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }}
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }}
+            .stat-box {{ background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+            .stat-value {{ font-size: 24px; font-weight: bold; color: #6c5ce7; }}
+            .btn {{ background: #6c5ce7; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; }}
+            .btn:disabled {{ background: #ccc; }}
+            input, select, textarea {{ width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }}
+            table {{ width: 100%; border-collapse: collapse; }}
+            th, td {{ padding: 10px; border-bottom: 1px solid #ddd; text-align: right; }}
         </style>
     </head>
     <body>
-        <!-- نافذة عرض المفاتيح -->
-        <div id="keysModal" class="keys-modal">
-            <div class="keys-modal-content">
-                <div class="keys-modal-header">
-                    <h2 style="margin: 0; font-size: 20px;">🔑 المفاتيح المولدة</h2>
-                    <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;" id="keysCount"></p>
-                </div>
-                <div class="keys-modal-body" id="keysContainer">
-                    <!-- سيتم إضافة المفاتيح هنا -->
-                </div>
-                <div class="keys-modal-footer">
-                    <button class="close-modal-btn" onclick="closeKeysModal()">إغلاق</button>
-                </div>
-            </div>
-        </div>
-        
         <div class="container">
             <div class="header">
-                <h1>🎛️ لوحة التحكم - المالك</h1>
-                <div style="display: flex; gap: 10px;">
-                    <button class="logout-btn" onclick="window.location.href='/logout_admin'" style="background: #e74c3c;">🚪 تسجيل خروج</button>
-                    <button class="logout-btn" onclick="window.location.href='/'" style="background: #3498db;">⬅️ الموقع</button>
-                </div>
+                <h2>🎛️ لوحة التحكم</h2>
+                <a href="/logout_admin" style="color: red; text-decoration: none;">تسجيل خروج</a>
             </div>
             
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="icon">👥</div>
-                    <div class="value">{total_users}</div>
-                    <div class="label">المستخدمين</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">📦</div>
-                    <div class="value">{available_products}</div>
-                    <div class="label">منتجات متاحة</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">✅</div>
-                    <div class="value">{sold_products}</div>
-                    <div class="label">منتجات مباعة</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🔑</div>
-                    <div class="value">{active_keys}</div>
-                    <div class="label">مفاتيح نشطة</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">🎫</div>
-                    <div class="value">{used_keys}</div>
-                    <div class="label">مفاتيح مستخدمة</div>
-                </div>
-                <div class="stat-card">
-                    <div class="icon">💰</div>
-                    <div class="value">{total_balance:.0f}</div>
-                    <div class="label">إجمالي الأرصدة</div>
-                </div>
+                <div class="stat-box"><div>المستخدمين</div><div class="stat-value">{total_users}</div></div>
+                <div class="stat-box"><div>إجمالي الرصيد</div><div class="stat-value">{total_balance}</div></div>
+                <div class="stat-box"><div>المنتجات المتاحة</div><div class="stat-value">{available_products}</div></div>
+                <div class="stat-box"><div>المفاتيح النشطة</div><div class="stat-value">{active_keys}</div></div>
             </div>
             
             <div class="section">
