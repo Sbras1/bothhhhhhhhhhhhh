@@ -2945,20 +2945,20 @@ def dashboard():
             
             <div class="section">
                 <h2>� إضافة منتج جديد</h2>
-                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <div>
-                            <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">📝 اسم المنتج</label>
-                            <input type="text" id="productName" placeholder="مثال: حساب نتفلكس بريميوم" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                            <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">📝 اسم المنتج</label>
+                            <input type="text" id="productName" placeholder="مثال: نتفلكس" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 13px;">
                         </div>
                         <div>
-                            <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">💰 السعر (ريال)</label>
-                            <input type="number" id="productPrice" placeholder="25" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                            <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">💰 السعر (ريال)</label>
+                            <input type="number" id="productPrice" placeholder="25" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 13px;">
                         </div>
                     </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🏷️ الفئة</label>
-                        <select id="productCategory" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">🏷️ الفئة</label>
+                        <select id="productCategory" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 13px;">
                             <option value="نتفلكس">نتفلكس</option>
                             <option value="شاهد">شاهد</option>
                             <option value="ديزني بلس">ديزني بلس</option>
@@ -2967,9 +2967,9 @@ def dashboard():
                             <option value="اشتراكات أخرى">اشتراكات أخرى</option>
                         </select>
                     </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">📋 التفاصيل</label>
-                        <textarea id="productDetails" placeholder="مثال: ✅ اشتراك شهر كامل&#10;✅ 4 شاشات UHD&#10;✅ بدون إعلانات" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; min-height: 100px; resize: vertical;"></textarea>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">📋 التفاصيل</label>
+                        <textarea id="productDetails" placeholder="مثال: ✅ اشتراك شهر&#10;✅ 4 شاشات UHD" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; min-height: 70px; resize: vertical; font-size: 12px;"></textarea>
                     </div>
                     <div style="margin-bottom: 10px;">
                         <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">🖼️ رابط الصورة</label>
@@ -2979,7 +2979,7 @@ def dashboard():
                         <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">🔐 البيانات المخفية</label>
                         <textarea id="productHiddenData" placeholder="البريد: test@gmail.com&#10;الباسورد: 123456" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; min-height: 60px; resize: vertical; font-size: 12px;"></textarea>
                     </div>
-                    <button onclick="addProduct()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">
+                    <button onclick="addProduct()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;">
                         ➕ إضافة المنتج
                     </button>
                 </div>
