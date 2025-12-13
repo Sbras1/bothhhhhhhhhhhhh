@@ -3214,17 +3214,17 @@ def api_add_balance():
     amount = float(data.get('amount'))
     
     if not user_id or amount <= 0:
-        return {{'status': 'error', 'message': 'بيانات غير صحيحة'}}
+        return {'status': 'error', 'message': 'بيانات غير صحيحة'}
     
     add_balance(user_id, amount)
     
     # إشعار المستخدم
     try:
-        bot.send_message(int(user_id), f"🎉 تم شحن رصيدك بمبلغ {{amount}} ريال!")
+        bot.send_message(int(user_id), f"🎉 تم شحن رصيدك بمبلغ {amount} ريال!")
     except:
         pass
     
-    return {{'status': 'success'}}
+    return {'status': 'success'}
 
 # API لإضافة منتج من لوحة التحكم
 @app.route('/api/add_product', methods=['POST'])
@@ -3278,20 +3278,20 @@ def api_generate_keys():
     count = int(data.get('count', 1))
     
     if amount <= 0 or count <= 0 or count > 100:
-        return {{'status': 'error', 'message': 'بيانات غير صحيحة'}}
+        return {'status': 'error', 'message': 'بيانات غير صحيحة'}
     
     generated_keys = []
     for i in range(count):
-        key_code = f"KEY-{{random.randint(10000, 99999)}}-{{random.randint(1000, 9999)}}"
-        charge_keys[key_code] = {{
+        key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
+        charge_keys[key_code] = {
             'amount': amount,
             'used': False,
             'used_by': None,
             'created_at': time.time()
-        }}
+        }
         generated_keys.append(key_code)
     
-    return {{'status': 'success', 'keys': generated_keys}}
+    return {'status': 'success', 'keys': generated_keys}
 
 # مسار لتسجيل خروج الآدمن
 @app.route('/logout_admin')
