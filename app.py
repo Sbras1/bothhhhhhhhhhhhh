@@ -82,15 +82,25 @@ charge_keys = {}
 
 # --- دوال مساعدة ---
 def get_balance(user_id):
-    return users_wallets.get(str(user_id), 0.0)
+    """جلب الرصيد من Firebase"""
+    try:
+        uid = str(user_id)
+        doc = db.collection('users').document(uid).get()
+        if doc.exists:
+            return doc.to_dict().get('balance', 0.0)
+        return 0.0
+    except Exception as e:
+        print(f"⚠️ خطأ في جلب الرصيد: {e}")
+        return users_wallets.get(str(user_id), 0.0)
 
 def add_balance(user_id, amount):
+    """إضافة رصيد للمستخدم في Firebase والذاكرة"""
     uid = str(user_id)
     if uid not in users_wallets:
         users_wallets[uid] = 0.0
     users_wallets[uid] += float(amount)
     
-    # حفظ في Firebase أيضاً
+    # حفظ في Firebase
     try:
         db.collection('users').document(uid).set({
             'balance': users_wallets[uid],
@@ -180,13 +190,13 @@ def migrate_data_to_firebase():
 # دالة لتحميل البيانات من Firebase إلى الذاكرة (عند بدء التشغيل)
 def load_data_from_firebase():
     """تحميل البيانات من Firebase إلى المتغيرات في الذاكرة للاستخدام السريع"""
-    global marketplace_items, users_wallets, charge_keys
+    global marketplace_items, users_wallets, charge_keys, active_orders
     
     try:
         print("📥 بدء تحميل البيانات من Firebase...")
         
-        # 1. تحميل المنتجات
-        products_ref = db.collection('products')
+        # 1. تحميل المنتجات (غير المباعة فقط)
+        products_ref = db.collection('products').where('sold', '==', False)
         marketplace_items = []
         for doc in products_ref.stream():
             data = doc.to_dict()
@@ -202,8 +212,8 @@ def load_data_from_firebase():
             users_wallets[doc.id] = data.get('balance', 0.0)
         print(f"✅ تم تحميل {len(users_wallets)} مستخدم")
         
-        # 3. تحميل مفاتيح الشحن
-        keys_ref = db.collection('charge_keys')
+        # 3. تحميل مفاتيح الشحن (غير المستخدمة فقط)
+        keys_ref = db.collection('charge_keys').where('used', '==', False)
         charge_keys = {}
         for doc in keys_ref.stream():
             data = doc.to_dict()
@@ -214,6 +224,14 @@ def load_data_from_firebase():
                 'created_at': data.get('created_at', time.time())
             }
         print(f"✅ تم تحميل {len(charge_keys)} مفتاح شحن")
+        
+        # 4. تحميل الطلبات النشطة (pending فقط)
+        orders_ref = db.collection('orders').where('status', '==', 'pending')
+        active_orders = {}
+        for doc in orders_ref.stream():
+            data = doc.to_dict()
+            active_orders[doc.id] = data
+        print(f"✅ تم تحميل {len(active_orders)} طلب نشط")
         
         print("🎉 تم تحميل جميع البيانات من Firebase بنجاح!")
         return True
@@ -1672,6 +1690,38 @@ HTML_PAGE = """
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    user_id = str(message.from_user.id)
+    user_name = message.from_user.first_name
+    if message.from_user.last_name:
+        user_name += ' ' + message.from_user.last_name
+    username = message.from_user.username or ''
+    
+    # حفظ معلومات المستخدم في Firebase
+    try:
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            # مستخدم جديد - إنشاء حساب
+            user_ref.set({
+                'telegram_id': user_id,
+                'name': user_name,
+                'username': username,
+                'balance': 0.0,
+                'created_at': firestore.SERVER_TIMESTAMP,
+                'last_seen': firestore.SERVER_TIMESTAMP
+            })
+            users_wallets[user_id] = 0.0
+        else:
+            # مستخدم موجود - تحديث آخر ظهور
+            user_ref.update({
+                'name': user_name,
+                'username': username,
+                'last_seen': firestore.SERVER_TIMESTAMP
+            })
+    except Exception as e:
+        print(f"⚠️ خطأ في حفظ معلومات المستخدم: {e}")
+    
     # إنشاء لوحة أزرار تفاعلية
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
@@ -2088,13 +2138,25 @@ def generate_keys(message):
             # توليد مفتاح عشوائي
             key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
             
-            # حفظ المفتاح في قاعدة البيانات
+            # حفظ المفتاح في الذاكرة
             charge_keys[key_code] = {
                 'amount': amount,
                 'used': False,
                 'used_by': None,
                 'created_at': time.time()
             }
+            
+            # حفظ في Firebase
+            try:
+                db.collection('charge_keys').document(key_code).set({
+                    'amount': float(amount),
+                    'used': False,
+                    'used_by': '',
+                    'created_at': time.time()
+                })
+            except Exception as e:
+                print(f"⚠️ خطأ في حفظ المفتاح في Firebase: {e}")
+            
             generated_keys.append(key_code)
         
         # إرسال المفاتيح
@@ -2165,10 +2227,20 @@ def charge_with_key(message):
         amount = key_data['amount']
         add_balance(user_id, amount)
         
-        # تحديث حالة المفتاح
+        # تحديث حالة المفتاح في الذاكرة
         charge_keys[key_code]['used'] = True
         charge_keys[key_code]['used_by'] = user_name
         charge_keys[key_code]['used_at'] = time.time()
+        
+        # تحديث في Firebase
+        try:
+            db.collection('charge_keys').document(key_code).update({
+                'used': True,
+                'used_by': user_name,
+                'used_at': time.time()
+            })
+        except Exception as e:
+            print(f"⚠️ خطأ في تحديث المفتاح في Firebase: {e}")
         
         # إرسال رسالة نجاح
         bot.reply_to(message,
@@ -2247,9 +2319,19 @@ def claim_order(call):
     if order['status'] == 'claimed':
         return bot.answer_callback_query(call.id, "⚠️ تم استلام هذا الطلب مسبقاً!", show_alert=True)
     
-    # تحديث حالة الطلب
+    # تحديث حالة الطلب في الذاكرة
     order['status'] = 'claimed'
     order['admin_id'] = admin_id
+    
+    # تحديث في Firebase
+    try:
+        db.collection('orders').document(order_id).update({
+            'status': 'claimed',
+            'admin_id': str(admin_id),
+            'claimed_at': firestore.SERVER_TIMESTAMP
+        })
+    except Exception as e:
+        print(f"⚠️ خطأ في تحديث الطلب في Firebase: {e}")
     
     # تحديث رسالة المشرف الذي استلم
     try:
@@ -2372,6 +2454,15 @@ def buyer_confirm(call):
     
     # حذف الطلب من القائمة النشطة
     del active_orders[order_id]
+    
+    # تحديث في Firebase
+    try:
+        db.collection('orders').document(order_id).update({
+            'status': 'confirmed',
+            'confirmed_at': firestore.SERVER_TIMESTAMP
+        })
+    except Exception as e:
+        print(f"⚠️ خطأ في تحديث الطلب في Firebase: {e}")
     
     bot.edit_message_text(
         f"✅ شكراً لتأكيدك!\n\n"
