@@ -1361,6 +1361,76 @@ HTML_PAGE = """
         {% endfor %}
     </div>
 
+    <!-- قسم مشترياتي -->
+    {% if my_purchases %}
+    <div style="margin-top: 30px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #00b894;">🛍️ مشترياتي</h3>
+            <span style="background: #00b894; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ my_purchases|length }}</span>
+        </div>
+        <div class="product-grid">
+            {% for purchase in my_purchases %}
+            <div class="product-card" style="border: 2px solid #00b894;">
+                <div class="product-badge" style="background: linear-gradient(135deg, #00b894, #00cec9);">مشترياتي ✓</div>
+                <div class="product-image" style="background: linear-gradient(135deg, #00b894, #00cec9);">
+                    🎉
+                </div>
+                <div class="product-info">
+                    <span class="product-category" style="background: rgba(0, 184, 148, 0.2); color: #00b894;">{{ purchase.get('item_name', 'منتج') }}</span>
+                    <div class="product-name">{{ purchase.get('item_name', 'منتج') }}</div>
+                    <div class="product-seller">🆔 #{{ purchase.get('order_id', '')[:12] }}</div>
+                    <div class="product-footer">
+                        <div class="product-price">{{ purchase.get('price', 0) }} ريال</div>
+                        <span style="color: #00b894; font-weight: bold; font-size: 12px;">✅ مكتمل</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- قسم المنتجات المباعة -->
+    {% if sold_items %}
+    <div style="margin-top: 30px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #e74c3c;">✅ المنتجات المباعة</h3>
+            <span style="background: #e74c3c; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ sold_items|length }}</span>
+        </div>
+        <div class="product-grid">
+            {% for item in sold_items %}
+            <div class="product-card sold-product" style="opacity: 0.7;">
+                <div class="sold-ribbon">مباع ✓</div>
+                <div class="product-image">
+                    {% if item.get('image_url') %}
+                    <img src="{{ item.image_url }}" alt="{{ item.item_name }}" style="filter: grayscale(50%);">
+                    {% else %}
+                    🎁
+                    {% endif %}
+                </div>
+                {% if item.get('category') %}
+                <div class="product-badge" style="background: #e74c3c;">{{ item.category }}</div>
+                {% endif %}
+                <div class="product-info">
+                    {% if item.get('category') %}
+                    <span class="product-category" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">{{ item.category }}</span>
+                    {% endif %}
+                    <div class="product-name">{{ item.item_name }}</div>
+                    <div class="product-seller">🏪 {{ item.seller_name }}</div>
+                    {% if item.get('buyer_name') %}
+                    <div class="sold-info">🎉 تم شراءه بواسطة: {{ item.buyer_name }}</div>
+                    {% endif %}
+                    <div class="product-footer">
+                        <div class="product-price" style="color: #e74c3c; text-decoration: line-through;">{{ item.price }} ريال</div>
+                        <span style="color: #e74c3c; font-weight: bold; font-size: 12px;">مباع 🚫</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
@@ -2641,9 +2711,37 @@ def index():
         # في حال الفشل، نعود لاستخدام الذاكرة كاحتياط
         items = [i for i in marketplace_items if not i.get('sold')]
 
+    # 3. جلب المنتجات المباعة (لعرضها في قسم منفصل)
+    sold_items = []
+    try:
+        sold_docs = query_where(db.collection('products'), 'sold', '==', True).stream()
+        for doc in sold_docs:
+            p = doc.to_dict()
+            p['id'] = doc.id
+            sold_items.append(p)
+        print(f"✅ تم جلب {len(sold_items)} منتج مباع من Firebase")
+    except Exception as e:
+        print(f"❌ خطأ في جلب المنتجات المباعة: {e}")
+        sold_items = [i for i in marketplace_items if i.get('sold')]
+
+    # 4. جلب مشتريات المستخدم الحالي
+    my_purchases = []
+    if user_id:
+        try:
+            purchases_docs = query_where(db.collection('orders'), 'buyer_id', '==', str(user_id)).stream()
+            for doc in purchases_docs:
+                p = doc.to_dict()
+                p['order_id'] = doc.id
+                my_purchases.append(p)
+            print(f"✅ تم جلب {len(my_purchases)} مشتريات للمستخدم {user_id}")
+        except Exception as e:
+            print(f"❌ خطأ في جلب مشتريات المستخدم: {e}")
+
     # عرض الصفحة
     return render_template_string(HTML_PAGE, 
-                                  items=items, 
+                                  items=items,
+                                  sold_items=sold_items,
+                                  my_purchases=my_purchases,
                                   balance=balance, 
                                   current_user_id=user_id or 0, 
                                   user_name=user_name)
