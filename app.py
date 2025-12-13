@@ -2690,14 +2690,28 @@ def buy_item():
         buyer_name = data.get('buyer_name')
         item_id = str(data.get('item_id'))  # تأكد أنه نص
 
-        # 1. البحث عن المنتج في Firebase مباشرة (أكثر دقة)
+        print(f"🛒 محاولة شراء - item_id: {item_id}, buyer_id: {buyer_id}")
+
+        # 1. البحث عن المنتج في Firebase مباشرة
         doc_ref = db.collection('products').document(item_id)
         doc = doc_ref.get()
 
         if not doc.exists:
-            return {'status': 'error', 'message': 'المنتج غير موجود أو تم حذفه!'}
-        
-        item = doc.to_dict()
+            print(f"❌ المنتج {item_id} غير موجود في Firebase")
+            # محاولة البحث في الذاكرة كاحتياط
+            item = None
+            for prod in marketplace_items:
+                if prod.get('id') == item_id:
+                    item = prod
+                    print(f"✅ تم إيجاد المنتج في الذاكرة: {item.get('item_name')}")
+                    break
+            
+            if not item:
+                return {'status': 'error', 'message': 'المنتج غير موجود أو تم حذفه!'}
+        else:
+            item = doc.to_dict()
+            item['id'] = doc.id
+            print(f"✅ تم إيجاد المنتج في Firebase: {item.get('item_name')}")
 
         # 2. التحقق من أن المنتج لم يُباع
         if item.get('sold', False):
@@ -2721,13 +2735,14 @@ def buy_item():
         new_balance = current_balance - price
         batch.update(user_ref, {'balance': new_balance})
 
-        # تحديث المنتج كمباع
-        batch.update(doc_ref, {
+        # تحديث المنتج كمباع (تأكد من استخدام document reference الصحيح)
+        product_doc_ref = db.collection('products').document(item_id)
+        batch.set(product_doc_ref, {
             'sold': True,
             'buyer_id': buyer_id,
             'buyer_name': buyer_name,
             'sold_at': firestore.SERVER_TIMESTAMP
-        })
+        }, merge=True)
 
         # حفظ الطلب
         order_id = f"ORD_{random.randint(100000, 999999)}"
