@@ -2538,79 +2538,94 @@ def set_webhook():
 def health():
     return {'status': 'ok'}, 200
 
-# لوحة التحكم للمالك
-@app.route('/dashboard')
+# صفحة تسجيل الدخول للوحة التحكم (HTML منفصل)
+LOGIN_HTML = """
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دخول المالك</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { color: #667eea; margin-bottom: 30px; text-align: center; }
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        button:hover { transform: scale(1.05); }
+        .error { color: red; text-align: center; margin-top: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>🔐 دخول الآدمن</h1>
+        <form method="POST">
+            <input type="password" name="pass" placeholder="كلمة المرور" required autofocus>
+            <button type="submit">دخول</button>
+        </form>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>
+"""
+
+# لوحة التحكم للمالك (محدثة بنظام Session آمن)
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    # التحقق من كلمة المرور
-    password = request.args.get('pass', '')
-    admin_password = os.environ.get('ADMIN_PASS', 'admin123')
+    # 1. إذا أرسل المستخدم الباسورد (ضغط زر دخول)
+    if request.method == 'POST':
+        password = request.form.get('pass', '')
+        admin_password = os.environ.get('ADMIN_PASS', 'admin123')
+        
+        if password == admin_password:
+            session['is_admin'] = True  # حفظ حالة الدخول في الجلسة
+            return redirect('/dashboard')  # إعادة توجيه لرابط نظيف
+        else:
+            return render_template_string(LOGIN_HTML, error="❌ كلمة مرور خاطئة!")
     
-    if password != admin_password:
-        return """
-        <!DOCTYPE html>
-        <html dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>تسجيل الدخول - لوحة التحكم</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .login-box {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 20px;
-                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-                    max-width: 400px;
-                    width: 90%;
-                }
-                h1 { color: #667eea; margin-bottom: 30px; text-align: center; }
-                input {
-                    width: 100%;
-                    padding: 15px;
-                    border: 2px solid #ddd;
-                    border-radius: 10px;
-                    font-size: 16px;
-                    margin-bottom: 20px;
-                    text-align: center;
-                }
-                input:focus { outline: none; border-color: #667eea; }
-                button {
-                    width: 100%;
-                    padding: 15px;
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 18px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    transition: transform 0.3s;
-                }
-                button:hover { transform: scale(1.05); }
-                .error { color: red; text-align: center; margin-top: 15px; }
-            </style>
-        </head>
-        <body>
-            <div class="login-box">
-                <h1>🔐 لوحة التحكم</h1>
-                <form method="GET">
-                    <input type="password" name="pass" placeholder="كلمة المرور" required autofocus>
-                    <button type="submit">دخول</button>
-                </form>
-                """ + (f'<p class="error">❌ كلمة مرور خاطئة!</p>' if password else '') + """
-            </div>
-        </body>
-        </html>
-        """
+    # 2. إذا كان المستخدم مسجل دخول مسبقاً (في الجلسة)
+    if not session.get('is_admin'):
+        # إذا لم يكن مسجل دخول -> عرض صفحة الدخول
+        return render_template_string(LOGIN_HTML, error="")
     
+    # 3. المستخدم مسجل دخول -> عرض لوحة التحكم
     # حساب الإحصائيات
     total_users = len(users_wallets)
     total_products = len(marketplace_items)
@@ -2751,7 +2766,10 @@ def dashboard():
         <div class="container">
             <div class="header">
                 <h1>🎛️ لوحة التحكم - المالك</h1>
-                <button class="logout-btn" onclick="window.location.href='/'">⬅️ الموقع الرئيسي</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="logout-btn" onclick="window.location.href='/logout_admin'" style="background: #e74c3c;">🚪 تسجيل خروج</button>
+                    <button class="logout-btn" onclick="window.location.href='/'" style="background: #3498db;">⬅️ الموقع</button>
+                </div>
             </div>
             
             <div class="stats-grid">
@@ -3093,6 +3111,12 @@ def api_generate_keys():
         generated_keys.append(key_code)
     
     return {{'status': 'success', 'keys': generated_keys}}
+
+# مسار لتسجيل خروج الآدمن
+@app.route('/logout_admin')
+def logout_admin():
+    session.pop('is_admin', None)
+    return redirect('/dashboard')
 
 if __name__ == "__main__":
     # التأكد من أن جميع المنتجات لديها UUID
