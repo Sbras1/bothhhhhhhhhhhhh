@@ -2844,9 +2844,9 @@ def dashboard():
                         {''.join([f'''
                         <tr>
                             <td>#{order_id}</td>
-                            <td>{order['item_name']}</td>
-                            <td>{order['price']} ريال</td>
-                            <td>{order['buyer_name']}</td>
+                            <td>{order["item_name"]}</td>
+                            <td>{order["price"]} ريال</td>
+                            <td>{order["buyer_name"]}</td>
                             <td><span class="badge badge-success">مكتمل</span></td>
                         </tr>
                         ''' for order_id, order in recent_orders]) if recent_orders else '<tr><td colspan="5" style="text-align: center;">لا توجد طلبات</td></tr>'}
@@ -2888,8 +2888,8 @@ def dashboard():
                         {''.join([f'''
                         <tr>
                             <td><code>{key_code}</code></td>
-                            <td>{key_data['amount']} ريال</td>
-                            <td><span class="badge {'badge-success' if not key_data['used'] else 'badge-danger'}">{'نشط' if not key_data['used'] else f"مستخدم بواسطة {key_data.get('used_by', 'N/A')}"}</span></td>
+                            <td>{key_data["amount"]} ريال</td>
+                            <td><span class="badge {"badge-success" if not key_data["used"] else "badge-danger"}">{"نشط" if not key_data["used"] else "مستخدم"}</span></td>
                         </tr>
                         ''' for key_code, key_data in list(charge_keys.items())[:20]]) if charge_keys else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
                     </tbody>
