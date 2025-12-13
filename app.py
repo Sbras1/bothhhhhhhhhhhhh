@@ -3073,32 +3073,32 @@ def dashboard():
         </div>
         
         <script>
-            function addBalance() {{
+            function addBalance() {
                 const userId = document.getElementById('userId').value;
                 const amount = document.getElementById('amount').value;
                 
-                if(!userId || !amount) {{
+                if(!userId || !amount) {
                     alert('الرجاء ملء جميع الحقول!');
                     return;
-                }}
+                }
                 
-                fetch('/api/add_balance', {{
+                fetch('/api/add_balance', {
                     method: 'POST',
-                    headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{user_id: userId, amount: parseFloat(amount)}})
-                }})
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({user_id: userId, amount: parseFloat(amount)})
+                })
                 .then(r => r.json())
-                .then(data => {{
-                    if(data.status === 'success') {{
+                .then(data => {
+                    if(data.status === 'success') {
                         alert('✅ تم شحن الرصيد بنجاح!');
                         location.reload();
-                    }} else {{
+                    } else {
                         alert('❌ ' + data.message);
-                    }}
-                }});
-            }}
+                    }
+                });
+            }
             
-            function addProduct() {{
+            function addProduct() {
                 const name = document.getElementById('productName').value;
                 const price = document.getElementById('productPrice').value;
                 const category = document.getElementById('productCategory').value;
@@ -3106,59 +3106,59 @@ def dashboard():
                 const image = document.getElementById('productImage').value;
                 const hiddenData = document.getElementById('productHiddenData').value;
                 
-                if(!name || !price || !hiddenData) {{
+                if(!name || !price || !hiddenData) {
                     alert('الرجاء ملء الحقول المطلوبة (الاسم، السعر، البيانات المخفية)!');
                     return;
-                }}
+                }
                 
-                fetch('/api/add_product', {{
+                fetch('/api/add_product', {
                     method: 'POST',
-                    headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
                         name: name,
                         price: parseFloat(price),
                         category: category,
                         details: details,
                         image: image || 'https://via.placeholder.com/300x200?text=No+Image',
                         hidden_data: hiddenData
-                    }})
-                }})
+                    })
+                })
                 .then(r => r.json())
-                .then(data => {{
-                    if(data.status === 'success') {{
+                .then(data => {
+                    if(data.status === 'success') {
                         alert('✅ تم إضافة المنتج بنجاح!\\n\\n📦 المنتج: ' + name + '\\n💰 السعر: ' + price + ' ريال');
                         location.reload();
-                    }} else {{
+                    } else {
                         alert('❌ ' + data.message);
-                    }}
-                }});
-            }}
+                    }
+                });
+            }
             
-            function generateKeys() {{
+            function generateKeys() {
                 const amount = document.getElementById('keyAmount').value;
                 const count = document.getElementById('keyCount').value;
                 
-                if(!amount || !count) {{
+                if(!amount || !count) {
                     alert('الرجاء ملء جميع الحقول!');
                     return;
-                }}
+                }
                 
-                fetch('/api/generate_keys', {{
+                fetch('/api/generate_keys', {
                     method: 'POST',
-                    headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{amount: parseFloat(amount), count: parseInt(count)}})
-                }})
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({amount: parseFloat(amount), count: parseInt(count)})
+                })
                 .then(r => r.json())
-                .then(data => {{
-                    if(data.status === 'success') {{
+                .then(data => {
+                    if(data.status === 'success') {
                         showKeysModal(data.keys, amount);
-                    }} else {{
+                    } else {
                         alert('❌ ' + data.message);
-                    }}
-                }});
-            }}
+                    }
+                });
+            }
             
-            function showKeysModal(keys, amount) {{
+            function showKeysModal(keys, amount) {
                 const modal = document.getElementById('keysModal');
                 const container = document.getElementById('keysContainer');
                 const countText = document.getElementById('keysCount');
@@ -3166,41 +3166,41 @@ def dashboard():
                 countText.textContent = 'تم توليد ' + keys.length + ' مفتاح بقيمة ' + amount + ' ريال لكل منها';
                 
                 container.innerHTML = '';
-                keys.forEach((key, index) => {{
+                keys.forEach((key, index) => {
                     const keyItem = document.createElement('div');
                     keyItem.className = 'key-item';
                     keyItem.innerHTML = '<div class="key-code">' + key + '</div>' +
                         '<button class="copy-btn" onclick="copyKey(\'' + key + '\', this)">📋 نسخ</button>';
                     container.appendChild(keyItem);
-                }});
+                });
                 
                 modal.style.display = 'block';
-            }}
+            }
             
-            function copyKey(key, btn) {{
-                navigator.clipboard.writeText(key).then(() => {{
+            function copyKey(key, btn) {
+                navigator.clipboard.writeText(key).then(() => {
                     btn.textContent = '✅ تم النسخ';
                     btn.classList.add('copied');
-                    setTimeout(() => {{
+                    setTimeout(() => {
                         btn.textContent = '📋 نسخ';
                         btn.classList.remove('copied');
-                    }}, 2000);
-                }}).catch(err => {{
+                    }, 2000);
+                }).catch(err => {
                     alert('فشل النسخ: ' + err);
-                }});
-            }}
+                });
+            }
             
-            function closeKeysModal() {{
+            function closeKeysModal() {
                 document.getElementById('keysModal').style.display = 'none';
                 location.reload();
-            }}
+            }
             
-            window.onclick = function(event) {{
+            window.onclick = function(event) {
                 const modal = document.getElementById('keysModal');
-                if(event.target == modal) {{
+                if(event.target == modal) {
                     closeKeysModal();
-                }}
-            }}
+                }
+            }
         </script>
     </body>
     </html>
