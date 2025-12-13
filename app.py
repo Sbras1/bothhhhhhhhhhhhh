@@ -1670,39 +1670,6 @@ HTML_PAGE = """
 
 # --- أوامر البوت ---
 
-@bot.message_handler(commands=['help'])
-def help_command(message):
-    # أوامر المستخدمين العاديين
-    user_commands = (
-        "📌 **أوامر المستخدمين:**\n\n"
-        "/start - بدء البوت وعرض القائمة الرئيسية\n"
-        "/code - الحصول على كود الدخول للموقع\n"
-        "/my_id - معرفة الآيدي الخاص بك\n"
-        "/balance - عرض رصيدك الحالي\n"
-        "/charge - شحن الرصيد بمفتاح\n\n"
-        "💡 **استخدم الأزرار للوصول السريع!**"
-    )
-    
-    # أوامر المالك الإضافية
-    admin_commands = (
-        "\n\n🎛️ **أوامر المالك الإضافية:**\n\n"
-        "/panel - فتح لوحة التحكم\n"
-        "/add - شحن رصيد مستخدم\n"
-        "   _مثال: /add 123456789 50_\n"
-        "/add_admin - إضافة مشرف جديد\n"
-        "   _مثال: /add_admin 123456789_\n"
-        "/remove_admin - حذف مشرف\n"
-        "   _مثال: /remove_admin 123456789_\n"
-        "/admins - عرض قائمة المشرفين\n\n"
-        "⚠️ **ملاحظة:** تم نقل نظام إضافة المنتجات إلى لوحة التحكم لتجربة أفضل!"
-    )
-    
-    # عرض الأوامر حسب الصلاحية
-    if message.from_user.id == ADMIN_ID:
-        bot.reply_to(message, user_commands + admin_commands, parse_mode="Markdown")
-    else:
-        bot.reply_to(message, user_commands, parse_mode="Markdown")
-
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     # إنشاء لوحة أزرار تفاعلية
@@ -1859,44 +1826,192 @@ def list_admins_command(message):
 # تخزين بيانات المنتج المؤقتة
 temp_product_data = {}
 
-# أمر إضافة منتج (تم تعطيله - استخدم لوحة التحكم)
+# أمر إضافة منتج (فقط للمالك)
 @bot.message_handler(commands=['add_product'])
 def add_product_command(message):
     # التحقق من أن المستخدم هو المالك
     if message.from_user.id != ADMIN_ID:
         return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
     
-    # توجيه المالك إلى لوحة التحكم
-    bot.reply_to(message, 
-        "🎛️ **تم نقل نظام إضافة المنتجات إلى لوحة التحكم**\n\n"
-        "✨ **المميزات الجديدة:**\n"
-        "• واجهة أسهل وأسرع\n"
-        "• معاينة فورية للمنتج\n"
-        "• حفظ تلقائي في Firebase\n"
-        "• إدارة شاملة للمنتجات\n\n"
-        f"🔗 **افتح لوحة التحكم:**\n{SITE_URL}/dashboard\n\n"
-        "💡 **أو استخدم:**\n"
-        "/panel - للحصول على رابط لوحة التحكم",
-        parse_mode="Markdown"
-    )
-
-# أمر للوصول السريع إلى لوحة التحكم (للمالك فقط)
-@bot.message_handler(commands=['panel'])
-def dashboard_link_command(message):
-    if message.from_user.id != ADMIN_ID:
-        return bot.reply_to(message, "⛔ هذا الأمر للمالك فقط!")
+    # بدء عملية إضافة منتج جديد
+    user_id = message.from_user.id
+    temp_product_data[user_id] = {}
     
-    bot.send_message(message.chat.id,
-                     f"🎛️ **لوحة التحكم الخاصة بك:**\n\n"
-                     f"🔗 **الرابط:**\n{SITE_URL}/dashboard\n\n"
-                     f"✨ **ماذا يمكنك فعله:**\n"
-                     f"• إضافة منتجات جديدة\n"
-                     f"• توليد مفاتيح الشحن\n"
-                     f"• شحن أرصدة المستخدمين\n"
-                     f"• مراقبة الطلبات والإحصائيات\n"
-                     f"• إدارة شاملة للمتجر\n\n"
-                     f"🔐 **تم تأمين اللوحة بنظام المصادقة**",
-                     parse_mode="Markdown")
+    msg = bot.reply_to(message, "📦 **إضافة منتج جديد**\n\n📝 أرسل اسم المنتج:", parse_mode="Markdown")
+    bot.register_next_step_handler(msg, process_product_name)
+
+def process_product_name(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['item_name'] = message.text.strip()
+    bot.reply_to(message, f"✅ تم إضافة الاسم: {message.text.strip()}")
+    
+    msg = bot.send_message(message.chat.id, "💰 أرسل سعر المنتج (بالريال):")
+    bot.register_next_step_handler(msg, process_product_price)
+
+def process_product_price(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    # التحقق من السعر
+    try:
+        price = float(message.text.strip())
+        temp_product_data[user_id]['price'] = str(price)
+        bot.reply_to(message, f"✅ تم إضافة السعر: {price} ريال")
+        
+        # إرسال أزرار الفئات
+        markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+        markup.add(
+            types.KeyboardButton("نتفلكس"),
+            types.KeyboardButton("شاهد"),
+            types.KeyboardButton("ديزني بلس"),
+            types.KeyboardButton("اوسن بلس"),
+            types.KeyboardButton("فديو بريميم"),
+            types.KeyboardButton("اشتراكات أخرى")
+        )
+        
+        msg = bot.send_message(message.chat.id, "🏷️ اختر فئة المنتج:", reply_markup=markup)
+        bot.register_next_step_handler(msg, process_product_category)
+        
+    except ValueError:
+        msg = bot.reply_to(message, "❌ السعر يجب أن يكون رقماً! أرسل السعر مرة أخرى:")
+        bot.register_next_step_handler(msg, process_product_price)
+
+def process_product_category(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+    
+    valid_categories = ["نتفلكس", "شاهد", "ديزني بلس", "اوسن بلس", "فديو بريميم", "اشتراكات أخرى"]
+    
+    if message.text.strip() not in valid_categories:
+        markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+        markup.add(
+            types.KeyboardButton("نتفلكس"),
+            types.KeyboardButton("شاهد"),
+            types.KeyboardButton("ديزني بلس"),
+            types.KeyboardButton("اوسن بلس"),
+            types.KeyboardButton("فديو بريميم"),
+            types.KeyboardButton("اشتراكات أخرى")
+        )
+        msg = bot.reply_to(message, "❌ فئة غير صحيحة! اختر من الأزرار:", reply_markup=markup)
+        return bot.register_next_step_handler(msg, process_product_category)
+    
+    temp_product_data[user_id]['category'] = message.text.strip()
+    bot.reply_to(message, f"✅ تم اختيار الفئة: {message.text.strip()}", reply_markup=types.ReplyKeyboardRemove())
+    
+    msg = bot.send_message(message.chat.id, "📝 أرسل تفاصيل المنتج (مثل: مدة الاشتراك، المميزات، إلخ):")
+    bot.register_next_step_handler(msg, process_product_details)
+
+def process_product_details(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['details'] = message.text.strip()
+    bot.reply_to(message, "✅ تم إضافة التفاصيل")
+    
+    markup = types.ReplyKeyboardMarkup(row_width=1, one_time_keyboard=True, resize_keyboard=True)
+    markup.add(types.KeyboardButton("تخطي"))
+    
+    msg = bot.send_message(message.chat.id, "🖼️ أرسل رابط صورة المنتج (أو اضغط تخطي):", reply_markup=markup)
+    bot.register_next_step_handler(msg, process_product_image)
+
+def process_product_image(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+    
+    if message.text.strip() == "تخطي":
+        temp_product_data[user_id]['image_url'] = "https://via.placeholder.com/300x200?text=No+Image"
+        bot.reply_to(message, "⏭️ تم تخطي الصورة", reply_markup=types.ReplyKeyboardRemove())
+    else:
+        temp_product_data[user_id]['image_url'] = message.text.strip()
+        bot.reply_to(message, "✅ تم إضافة رابط الصورة", reply_markup=types.ReplyKeyboardRemove())
+    
+    msg = bot.send_message(message.chat.id, "🔐 أرسل البيانات المخفية (الايميل والباسورد مثلاً):")
+    bot.register_next_step_handler(msg, process_product_hidden_data)
+
+def process_product_hidden_data(message):
+    user_id = message.from_user.id
+    
+    if message.text == '/cancel':
+        temp_product_data.pop(user_id, None)
+        return bot.reply_to(message, "❌ تم إلغاء إضافة المنتج")
+    
+    temp_product_data[user_id]['hidden_data'] = message.text.strip()
+    bot.reply_to(message, "✅ تم إضافة البيانات المخفية")
+    
+    # عرض ملخص المنتج
+    product = temp_product_data[user_id]
+    summary = (
+        "📦 **ملخص المنتج:**\n\n"
+        f"📝 الاسم: {product['item_name']}\n"
+        f"💰 السعر: {product['price']} ريال\n"
+        f"🏷️ الفئة: {product['category']}\n"
+        f"� التفاصيل: {product['details']}\n"
+        f"�🖼️ الصورة: {product['image_url']}\n"
+        f"🔐 البيانات: {product['hidden_data']}\n\n"
+        "هل تريد إضافة هذا المنتج؟"
+    )
+    
+    markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True, resize_keyboard=True)
+    markup.add(
+        types.KeyboardButton("✅ موافق"),
+        types.KeyboardButton("❌ إلغاء")
+    )
+    
+    msg = bot.send_message(message.chat.id, summary, parse_mode="Markdown", reply_markup=markup)
+    bot.register_next_step_handler(msg, confirm_add_product)
+
+def confirm_add_product(message):
+    user_id = message.from_user.id
+    
+    if message.text == "✅ موافق":
+        product = temp_product_data.get(user_id)
+        
+        if product:
+            # إضافة المنتج
+            item = {
+                'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
+                'item_name': product['item_name'],
+                'price': product['price'],
+                'seller_id': str(ADMIN_ID),
+                'seller_name': 'المالك',
+                'hidden_data': product['hidden_data'],
+                'category': product['category'],
+                'details': product['details'],
+                'image_url': product['image_url']
+            }
+            marketplace_items.append(item)
+            
+            bot.reply_to(message,
+                         f"✅ **تم إضافة المنتج بنجاح!**\n\n"
+                         f"📦 المنتج: {product['item_name']}\n"
+                         f"💰 السعر: {product['price']} ريال\n"
+                         f"🏷️ الفئة: {product['category']}\n"
+                         f"📊 إجمالي المنتجات: {len(marketplace_items)}",
+                         parse_mode="Markdown",
+                         reply_markup=types.ReplyKeyboardRemove())
+        
+        # حذف البيانات المؤقتة
+        temp_product_data.pop(user_id, None)
+    else:
+        bot.reply_to(message, "❌ تم إلغاء إضافة المنتج", reply_markup=types.ReplyKeyboardRemove())
+        temp_product_data.pop(user_id, None)
 
 @bot.message_handler(commands=['code'])
 def get_verification_code(message):
@@ -2671,30 +2786,34 @@ LOGIN_HTML = """
 </html>
 """
 
-# لوحة التحكم للمالك (محدثة ومصححة)
+# لوحة التحكم للمالك (محدثة بنظام Session آمن)
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
-    # 1. تسجيل الدخول
+    # 1. إذا أرسل المستخدم الباسورد (ضغط زر دخول)
     if request.method == 'POST':
         password = request.form.get('pass', '')
         admin_password = os.environ.get('ADMIN_PASS', 'admin123')
         
         if password == admin_password:
-            session['is_admin'] = True
-            return redirect('/dashboard')
+            session['is_admin'] = True  # حفظ حالة الدخول في الجلسة
+            return redirect('/dashboard')  # إعادة توجيه لرابط نظيف
         else:
             return render_template_string(LOGIN_HTML, error="❌ كلمة مرور خاطئة!")
-
+    
+    # 2. إذا كان المستخدم مسجل دخول مسبقاً (في الجلسة)
     if not session.get('is_admin'):
+        # إذا لم يكن مسجل دخول -> عرض صفحة الدخول
         return render_template_string(LOGIN_HTML, error="")
-
-    # 2. جلب الإحصائيات (مع حماية من الأخطاء)
+    
+    # 3. المستخدم مسجل دخول -> عرض لوحة التحكم
+    
+    # --- جلب الإحصائيات الحقيقية من Firebase ---
     try:
-        # المستخدمين
+        # عدد المستخدمين
         users_ref = db.collection('users')
         total_users = len(list(users_ref.stream()))
         
-        # الرصيد
+        # مجموع الأرصدة (يحتاج لعمل Loop)
         total_balance = 0
         for user in users_ref.stream():
             total_balance += user.to_dict().get('balance', 0)
@@ -2704,68 +2823,331 @@ def dashboard():
         all_products = list(products_ref.stream())
         total_products = len(all_products)
         
-        sold_products = sum(1 for p in all_products if p.to_dict().get('sold'))
-        available_products = total_products - sold_products
-        
-        # المفاتيح
-        keys_ref = db.collection('charge_keys')
-        all_keys = list(keys_ref.stream())
-        active_keys = sum(1 for k in all_keys if not k.to_dict().get('used'))
-        used_keys = len(all_keys) - active_keys
-
-        # الطلبات الأخيرة
+        # حساب المباع والمتاح
+        sold_products = 0
+        available_products = 0
+        for p in all_products:
+            p_data = p.to_dict()
+            if p_data.get('sold'):
+                sold_products += 1
+            else:
+                available_products += 1
+                
+        # الطلبات (Orders)
+        orders_ref = db.collection('orders')
+        # نجلب آخر 10 طلبات فقط للعرض
+        recent_orders_docs = orders_ref.order_by('created_at', direction=firestore.Query.DESCENDING).limit(10).stream()
         recent_orders = []
-        orders_ref = db.collection('orders').order_by('created_at', direction=firestore.Query.DESCENDING).limit(10).stream()
-        for doc in orders_ref:
-            d = doc.to_dict()
-            recent_orders.append((doc.id[:8], d))
+        for doc in recent_orders_docs:
+            data = doc.to_dict()
+            # تنسيق البيانات للعرض في الجدول
+            recent_orders.append((
+                doc.id[:8], # رقم طلب قصير
+                {
+                    'item_name': data.get('item_name', 'منتج'),
+                    'price': data.get('price', 0),
+                    'buyer_name': data.get('buyer_name', 'مشتري')
+                }
+            ))
 
-        # قائمة المستخدمين (للعرض)
+        # المفاتيح - نستخدم charge_keys في الذاكرة حالياً
+        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
+        used_keys = len([k for k, v in charge_keys.items() if v['used']])
+        
+        # إجمالي الطلبات
+        total_orders = len(list(orders_ref.stream()))
+        
+        # جلب آخر 20 مستخدم للعرض في الجدول
         users_list = []
-        for u in users_ref.limit(20).stream():
-            users_list.append((u.id, u.to_dict().get('balance', 0)))
+        for user_doc in users_ref.limit(20).stream():
+            user_data = user_doc.to_dict()
+            users_list.append((user_doc.id, user_data.get('balance', 0)))
 
     except Exception as e:
-        print(f"Stats Error: {e}")
-        total_users = total_balance = total_products = sold_products = available_products = active_keys = used_keys = 0
+        print(f"Error loading stats from Firebase: {e}")
+        # قيم افتراضية عند الخطأ
+        total_users = 0
+        total_balance = 0
+        total_products = 0
+        available_products = 0
+        sold_products = 0
+        total_orders = 0
         recent_orders = []
         users_list = []
-
-    # 3. عرض الصفحة (HTML + JS المصحح)
+        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
+        used_keys = len([k for k, v in charge_keys.items() if v['used']])
+    
     return f"""
     <!DOCTYPE html>
     <html dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>لوحة التحكم</title>
+        <title>لوحة التحكم - المالك</title>
         <style>
-            body {{ font-family: sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }}
-            .container {{ max-width: 1200px; margin: 0 auto; }}
-            .header {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }}
-            .card {{ background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }}
-            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }}
-            .stat-box {{ background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-            .stat-value {{ font-size: 24px; font-weight: bold; color: #6c5ce7; }}
-            .btn {{ background: #6c5ce7; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; }}
-            .btn:disabled {{ background: #ccc; }}
-            input, select, textarea {{ width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }}
-            table {{ width: 100%; border-collapse: collapse; }}
-            th, td {{ padding: 10px; border-bottom: 1px solid #ddd; text-align: right; }}
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                min-height: 100vh;
+                padding: 20px;
+                color: #333;
+            }}
+            .container {{
+                max-width: 1400px;
+                margin: 0 auto;
+            }}
+            .header {{
+                background: white;
+                padding: 20px 30px;
+                border-radius: 15px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }}
+            .header h1 {{ color: #667eea; font-size: 28px; }}
+            .logout-btn {{
+                background: #e74c3c;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+            .stats-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }}
+            .stat-card {{
+                background: white;
+                padding: 20px;
+                border-radius: 15px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                text-align: center;
+            }}
+            .stat-card .icon {{ font-size: 40px; margin-bottom: 10px; }}
+            .stat-card .value {{ font-size: 32px; font-weight: bold; color: #667eea; }}
+            .stat-card .label {{ color: #888; margin-top: 5px; }}
+            .section {{
+                background: white;
+                padding: 25px;
+                border-radius: 15px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }}
+            .section h2 {{ color: #667eea; margin-bottom: 20px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+            th, td {{
+                padding: 12px;
+                text-align: right;
+                border-bottom: 1px solid #ddd;
+            }}
+            th {{
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                font-weight: bold;
+            }}
+            tr:hover {{ background: #f5f5f5; }}
+            .badge {{
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 15px;
+                font-size: 12px;
+                font-weight: bold;
+            }}
+            .badge-success {{ background: #00b894; color: white; }}
+            .badge-danger {{ background: #e74c3c; color: white; }}
+            .badge-warning {{ background: #fdcb6e; color: #333; }}
+            .badge-info {{ background: #74b9ff; color: white; }}
+            .tools {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 15px;
+            }}
+            .tool-box {{
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 10px;
+                border-left: 4px solid #667eea;
+            }}
+            .tool-box h3 {{ color: #667eea; margin-bottom: 15px; }}
+            .tool-box input, .tool-box select {{
+                width: 100%;
+                padding: 10px;
+                border: 2px solid #ddd;
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }}
+            .tool-box button {{
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+            }}
+            .tool-box button:hover {{ opacity: 0.9; }}
+            
+            /* نافذة عرض المفاتيح */
+            .keys-modal {{
+                display: none;
+                position: fixed;
+                z-index: 9999;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                animation: fadeIn 0.3s;
+            }}
+            .keys-modal-content {{
+                background: white;
+                margin: 5% auto;
+                padding: 0;
+                border-radius: 15px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                animation: slideDown 0.3s;
+            }}
+            .keys-modal-header {{
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                padding: 20px;
+                border-radius: 15px 15px 0 0;
+                color: white;
+                text-align: center;
+            }}
+            .keys-modal-body {{
+                padding: 20px;
+            }}
+            .key-item {{
+                background: #f8f9fa;
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-left: 4px solid #667eea;
+            }}
+            .key-code {{
+                font-family: monospace;
+                font-size: 14px;
+                color: #333;
+                font-weight: bold;
+                flex: 1;
+                word-break: break-all;
+            }}
+            .copy-btn {{
+                background: #00b894;
+                color: white;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: bold;
+                margin-left: 10px;
+                transition: all 0.3s;
+            }}
+            .copy-btn:hover {{ background: #00a383; }}
+            .copy-btn.copied {{
+                background: #fdcb6e;
+                color: #333;
+            }}
+            .keys-modal-footer {{
+                padding: 15px 20px;
+                text-align: center;
+                border-top: 1px solid #ddd;
+            }}
+            .close-modal-btn {{
+                background: #e74c3c;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 14px;
+            }}
+            @keyframes fadeIn {{
+                from {{ opacity: 0; }}
+                to {{ opacity: 1; }}
+            }}
+            @keyframes slideDown {{
+                from {{ transform: translateY(-50px); opacity: 0; }}
+                to {{ transform: translateY(0); opacity: 1; }}
+            }}
         </style>
     </head>
     <body>
+        <!-- نافذة عرض المفاتيح -->
+        <div id="keysModal" class="keys-modal">
+            <div class="keys-modal-content">
+                <div class="keys-modal-header">
+                    <h2 style="margin: 0; font-size: 20px;">🔑 المفاتيح المولدة</h2>
+                    <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;" id="keysCount"></p>
+                </div>
+                <div class="keys-modal-body" id="keysContainer">
+                    <!-- سيتم إضافة المفاتيح هنا -->
+                </div>
+                <div class="keys-modal-footer">
+                    <button class="close-modal-btn" onclick="closeKeysModal()">إغلاق</button>
+                </div>
+            </div>
+        </div>
+        
         <div class="container">
             <div class="header">
-                <h2>🎛️ لوحة التحكم</h2>
-                <a href="/logout_admin" style="color: red; text-decoration: none;">تسجيل خروج</a>
+                <h1>🎛️ لوحة التحكم - المالك</h1>
+                <div style="display: flex; gap: 10px;">
+                    <button class="logout-btn" onclick="window.location.href='/logout_admin'" style="background: #e74c3c;">🚪 تسجيل خروج</button>
+                    <button class="logout-btn" onclick="window.location.href='/'" style="background: #3498db;">⬅️ الموقع</button>
+                </div>
             </div>
             
             <div class="stats-grid">
-                <div class="stat-box"><div>المستخدمين</div><div class="stat-value">{total_users}</div></div>
-                <div class="stat-box"><div>إجمالي الرصيد</div><div class="stat-value">{total_balance}</div></div>
-                <div class="stat-box"><div>المنتجات المتاحة</div><div class="stat-value">{available_products}</div></div>
-                <div class="stat-box"><div>المفاتيح النشطة</div><div class="stat-value">{active_keys}</div></div>
+                <div class="stat-card">
+                    <div class="icon">👥</div>
+                    <div class="value">{total_users}</div>
+                    <div class="label">المستخدمين</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📦</div>
+                    <div class="value">{available_products}</div>
+                    <div class="label">منتجات متاحة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">✅</div>
+                    <div class="value">{sold_products}</div>
+                    <div class="label">منتجات مباعة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🔑</div>
+                    <div class="value">{active_keys}</div>
+                    <div class="label">مفاتيح نشطة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🎫</div>
+                    <div class="value">{used_keys}</div>
+                    <div class="label">مفاتيح مستخدمة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">💰</div>
+                    <div class="value">{total_balance:.0f}</div>
+                    <div class="label">إجمالي الأرصدة</div>
+                </div>
             </div>
             
             <div class="section">
@@ -2844,9 +3226,9 @@ def dashboard():
                         {''.join([f'''
                         <tr>
                             <td>#{order_id}</td>
-                            <td>{order["item_name"]}</td>
-                            <td>{order["price"]} ريال</td>
-                            <td>{order["buyer_name"]}</td>
+                            <td>{order['item_name']}</td>
+                            <td>{order['price']} ريال</td>
+                            <td>{order['buyer_name']}</td>
                             <td><span class="badge badge-success">مكتمل</span></td>
                         </tr>
                         ''' for order_id, order in recent_orders]) if recent_orders else '<tr><td colspan="5" style="text-align: center;">لا توجد طلبات</td></tr>'}
@@ -2888,8 +3270,8 @@ def dashboard():
                         {''.join([f'''
                         <tr>
                             <td><code>{key_code}</code></td>
-                            <td>{key_data["amount"]} ريال</td>
-                            <td><span class="badge {"badge-success" if not key_data["used"] else "badge-danger"}">{"نشط" if not key_data["used"] else "مستخدم"}</span></td>
+                            <td>{key_data['amount']} ريال</td>
+                            <td><span class="badge {'badge-success' if not key_data['used'] else 'badge-danger'}">{'نشط' if not key_data['used'] else f"مستخدم بواسطة {key_data.get('used_by', 'N/A')}"}</span></td>
                         </tr>
                         ''' for key_code, key_data in list(charge_keys.items())[:20]]) if charge_keys else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
                     </tbody>
@@ -2898,24 +3280,15 @@ def dashboard():
         </div>
         
         <script>
-            console.log('Dashboard Script Loading...');
-            
-            // Dashboard Control Panel Functions v2.0
-            window.addBalance = function() {{
-                console.log('addBalance called');
-                var userId = document.getElementById('userId').value;
-                var amount = document.getElementById('amount').value;
+            function addBalance() {{
+                const userId = document.getElementById('userId').value;
+                const amount = document.getElementById('amount').value;
                 
                 if(!userId || !amount) {{
-                    alert('الرجاء ملء جميع الحقول');
+                    alert('الرجاء ملء جميع الحقول!');
                     return;
                 }}
                 
-                var btn = event.target;
-                var originalText = btn.innerText;
-                btn.innerText = "جاري الشحن...";
-                btn.disabled = true;
-
                 fetch('/api/add_balance', {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -2927,36 +3300,23 @@ def dashboard():
                         alert('✅ تم شحن الرصيد بنجاح!');
                         location.reload();
                     }} else {{
-                        alert('❌ خطأ: ' + data.message);
+                        alert('❌ ' + data.message);
                     }}
-                }})
-                .catch(function(err) {{
-                    console.error('Error:', err);
-                    alert('خطأ في الاتصال بالسيرفر');
-                }})
-                .finally(function() {{
-                    btn.innerText = originalText;
-                    btn.disabled = false;
                 }});
-            }};
+            }}
             
-            window.addProduct = function() {{
-                var name = document.getElementById('productName').value;
-                var price = document.getElementById('productPrice').value;
-                var category = document.getElementById('productCategory').value;
-                var details = document.getElementById('productDetails').value;
-                var image = document.getElementById('productImage').value;
-                var hiddenData = document.getElementById('productHiddenData').value;
+            function addProduct() {{
+                const name = document.getElementById('productName').value;
+                const price = document.getElementById('productPrice').value;
+                const category = document.getElementById('productCategory').value;
+                const details = document.getElementById('productDetails').value;
+                const image = document.getElementById('productImage').value;
+                const hiddenData = document.getElementById('productHiddenData').value;
                 
                 if(!name || !price || !hiddenData) {{
-                    alert('الرجاء ملء الحقول المطلوبة');
+                    alert('الرجاء ملء الحقول المطلوبة (الاسم، السعر، البيانات المخفية)!');
                     return;
                 }}
-                
-                var btn = event.target;
-                var originalText = btn.innerText;
-                btn.innerText = "جاري الإضافة...";
-                btn.disabled = true;
                 
                 fetch('/api/add_product', {{
                     method: 'POST',
@@ -2966,44 +3326,30 @@ def dashboard():
                         price: parseFloat(price),
                         category: category,
                         details: details,
-                        image: (image || 'https://via.placeholder.com/300x200?text=No+Image'),
+                        image: image || 'https://via.placeholder.com/300x200?text=No+Image',
                         hidden_data: hiddenData
                     }})
                 }})
                 .then(r => r.json())
                 .then(data => {{
                     if(data.status === 'success') {{
-                        alert('✅ تم إضافة المنتج بنجاح!');
+                        alert('✅ تم إضافة المنتج بنجاح!\\n\\n📦 المنتج: ' + name + '\\n💰 السعر: ' + price + ' ريال');
                         location.reload();
                     }} else {{
-                        alert('❌ خطأ من السيرفر: ' + data.message);
+                        alert('❌ ' + data.message);
                     }}
-                }})
-                .catch(function(err) {{
-                    console.error('Error:', err);
-                    alert('فشل الاتصال بالسيرفر');
-                }})
-                .finally(function() {{
-                    btn.innerText = originalText;
-                    btn.disabled = false;
                 }});
-            }};
+            }}
             
-            window.generateKeys = function() {{
-                console.log('generateKeys called');
-                var amount = document.getElementById('keyAmount').value;
-                var count = document.getElementById('keyCount').value;
+            function generateKeys() {{
+                const amount = document.getElementById('keyAmount').value;
+                const count = document.getElementById('keyCount').value;
                 
                 if(!amount || !count) {{
-                    alert('الرجاء ملء جميع الحقول');
+                    alert('الرجاء ملء جميع الحقول!');
                     return;
                 }}
                 
-                var btn = event.target;
-                var originalText = btn.innerText;
-                btn.innerText = "جاري التوليد...";
-                btn.disabled = true;
-
                 fetch('/api/generate_keys', {{
                     method: 'POST',
                     headers: {{'Content-Type': 'application/json'}},
@@ -3014,20 +3360,12 @@ def dashboard():
                     if(data.status === 'success') {{
                         showKeysModal(data.keys, amount);
                     }} else {{
-                        alert('❌ خطأ: ' + data.message);
+                        alert('❌ ' + data.message);
                     }}
-                }})
-                .catch(function(err) {{
-                    console.error('Error:', err);
-                    alert('خطأ في الاتصال بالسيرفر');
-                }})
-                .finally(function() {{
-                    btn.innerText = originalText;
-                    btn.disabled = false;
                 }});
-            }};
+            }}
             
-            window.showKeysModal = function(keys, amount) {{
+            function showKeysModal(keys, amount) {{
                 const modal = document.getElementById('keysModal');
                 const container = document.getElementById('keysContainer');
                 const countText = document.getElementById('keysCount');
@@ -3044,9 +3382,9 @@ def dashboard():
                 }});
                 
                 modal.style.display = 'block';
-            }};
+            }}
             
-            window.copyKey = function(key, btn) {{
+            function copyKey(key, btn) {{
                 navigator.clipboard.writeText(key).then(() => {{
                     btn.textContent = '✅ تم النسخ';
                     btn.classList.add('copied');
@@ -3055,28 +3393,21 @@ def dashboard():
                         btn.classList.remove('copied');
                     }}, 2000);
                 }}).catch(err => {{
-                    console.error('Copy error:', err);
-                    alert('فشل النسخ');
+                    alert('فشل النسخ: ' + err);
                 }});
-            }};
+            }}
             
-            window.closeKeysModal = function() {{
+            function closeKeysModal() {{
                 document.getElementById('keysModal').style.display = 'none';
                 location.reload();
-            }};
+            }}
             
             window.onclick = function(event) {{
                 const modal = document.getElementById('keysModal');
                 if(event.target == modal) {{
                     closeKeysModal();
                 }}
-            }};
-            
-            console.log('All functions loaded:', {{
-                addBalance: typeof window.addBalance,
-                addProduct: typeof window.addProduct,
-                generateKeys: typeof window.generateKeys
-            }});
+            }}
         </script>
     </body>
     </html>
@@ -3102,7 +3433,7 @@ def api_add_balance():
     
     return {'status': 'success'}
 
-# --- API لإضافة منتج (مصحح وشامل) ---
+# --- API لإضافة منتج (مصحح للحفظ في Firebase) ---
 @app.route('/api/add_product', methods=['POST'])
 def api_add_product():
     try:
@@ -3114,10 +3445,11 @@ def api_add_product():
         image = data.get('image', '')
         hidden_data = data.get('hidden_data')
         
+        # التحقق من البيانات
         if not name or not price or not hidden_data:
-            return {'status': 'error', 'message': 'البيانات ناقصة! تأكد من الاسم، السعر، والبيانات المخفية.'}
+            return {'status': 'error', 'message': 'بيانات غير كاملة'}
         
-        # إنشاء المنتج
+        # إنشاء بيانات المنتج
         new_id = str(uuid.uuid4())
         item = {
             'id': new_id,
@@ -3133,13 +3465,13 @@ def api_add_product():
             'created_at': firestore.SERVER_TIMESTAMP
         }
         
-        # 1. الحفظ في Firebase
+        # 1. الحفظ في Firebase (المهم)
         db.collection('products').document(new_id).set(item)
         
-        # 2. تحديث الذاكرة
+        # 2. تحديث الذاكرة المحلية (للعرض السريع)
         marketplace_items.append(item)
         
-        # 3. إشعار المالك (مع حماية من الأخطاء)
+        # 3. إشعار المالك (داخل try/except لضمان عدم توقف العملية)
         try:
             bot.send_message(
                 ADMIN_ID,
@@ -3147,15 +3479,15 @@ def api_add_product():
                 parse_mode="Markdown"
             )
         except Exception as e:
-            print(f"⚠️ فشل إرسال إشعار التليجرام (تم حفظ المنتج بنجاح): {e}")
+            print(f"فشل إرسال الإشعار: {e}")
             
-        return {'status': 'success', 'message': 'تم الحفظ بنجاح'}
+        return {'status': 'success', 'message': 'تم الحفظ في قاعدة البيانات'}
 
     except Exception as e:
-        print(f"❌ Error in add_product: {e}")
-        return {'status': 'error', 'message': f'خطأ في السيرفر: {str(e)}'}
+        print(f"Error in add_product: {e}")
+        return {'status': 'error', 'message': f'حدث خطأ في السيرفر: {str(e)}'}
 
-# --- API لتوليد المفاتيح (مصحح وشامل) ---
+# --- API لتوليد المفاتيح (مصحح للحفظ في Firebase) ---
 @app.route('/api/generate_keys', methods=['POST'])
 def api_generate_keys():
     try:
@@ -3164,13 +3496,15 @@ def api_generate_keys():
         count = int(data.get('count', 1))
         
         if amount <= 0 or count <= 0 or count > 100:
-            return {'status': 'error', 'message': 'الأرقام غير صحيحة (تأكد من المبلغ والعدد)'}
+            return {'status': 'error', 'message': 'أرقام غير صحيحة'}
         
         generated_keys = []
-        batch = db.batch()
+        batch = db.batch() # استخدام الدفعات للحفظ السريع
         
         for _ in range(count):
+            # إنشاء كود عشوائي
             key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
+            
             key_data = {
                 'amount': amount,
                 'used': False,
@@ -3178,7 +3512,7 @@ def api_generate_keys():
                 'created_at': firestore.SERVER_TIMESTAMP
             }
             
-            # تجهيز الحفظ
+            # تجهيز الحفظ في Firebase
             doc_ref = db.collection('charge_keys').document(key_code)
             batch.set(doc_ref, key_data)
             
@@ -3186,13 +3520,13 @@ def api_generate_keys():
             charge_keys[key_code] = key_data
             generated_keys.append(key_code)
             
-        # تنفيذ الحفظ
+        # تنفيذ الحفظ في Firebase دفعة واحدة
         batch.commit()
         
         return {'status': 'success', 'keys': generated_keys}
 
     except Exception as e:
-        print(f"❌ Error generating keys: {e}")
+        print(f"Error generating keys: {e}")
         return {'status': 'error', 'message': f'فشل التوليد: {str(e)}'}
 
 # مسار لتسجيل خروج الآدمن
