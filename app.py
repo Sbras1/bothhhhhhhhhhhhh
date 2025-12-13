@@ -1655,14 +1655,38 @@ HTML_PAGE = """
         
         // تصفية المنتجات حسب الفئة
         let allItems = {{ items|tojson }};
+        let currentCategory = 'all'; // متغير لتتبع الفئة الحالية
         
         function filterCategory(category) {
+            currentCategory = category; // حفظ الفئة الحالية
+            
             // تحديث نص الفئة
             const categoryFilterText = document.getElementById('categoryFilter');
             if(category === 'all') {
                 categoryFilterText.textContent = '';
             } else {
                 categoryFilterText.textContent = `- ${category}`;
+            }
+            
+            // تحديث مظهر بطاقات الأقسام
+            document.querySelectorAll('.cat-card').forEach(card => {
+                card.style.opacity = '0.5';
+                card.style.transform = 'scale(0.95)';
+            });
+            if(category !== 'all') {
+                document.querySelectorAll('.cat-card').forEach(card => {
+                    if(card.querySelector('.cat-title').textContent.trim() === category) {
+                        card.style.opacity = '1';
+                        card.style.transform = 'scale(1)';
+                        card.style.boxShadow = '0 0 15px rgba(108, 92, 231, 0.5)';
+                    }
+                });
+            } else {
+                document.querySelectorAll('.cat-card').forEach(card => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1)';
+                    card.style.boxShadow = '';
+                });
             }
             
             // تصفية وعرض المنتجات
@@ -1680,37 +1704,78 @@ HTML_PAGE = """
             
             if(filteredItems.length === 0) {
                 market.innerHTML = '<p style="text-align:center; color:#888; grid-column: 1/-1; padding: 40px;">📭 لا توجد منتجات في هذا القسم</p>';
-                return;
-            }
-            
-            filteredItems.forEach((item, index) => {
-                const isMyProduct = item.seller_id == currentUserId;
-                const isSold = item.sold === true;
-                const productHTML = `
-                    <div class="product-card ${isSold ? 'sold-product' : ''}">
-                        ${isSold ? '<div class="sold-ribbon">مباع ✓</div>' : ''}
-                        <div class="product-image">
-                            ${item.image_url ? `<img src="${item.image_url}" alt="${item.item_name}">` : '🎁'}
-                        </div>
-                        ${item.category ? `<div class="product-badge">${item.category}</div>` : ''}
-                        <div class="product-info">
-                            ${item.category ? `<span class="product-category">${item.category}</span>` : ''}
-                            <div class="product-name">${item.item_name}</div>
-                            <div class="product-seller">🏪 ${item.seller_name}</div>
-                            ${isSold && item.buyer_name ? `<div class="sold-info">🎉 تم شراءه بواسطة: ${item.buyer_name}</div>` : ''}
-                            <div class="product-footer">
-                                <div class="product-price">${item.price} ريال</div>
-                                ${isSold ? 
-                                    `<button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>` :
-                                    (!isMyProduct ? 
-                                        `<button class="product-buy-btn" onclick='buyItem("${item.id}", ${item.price}, "${(item.item_name || '').replace(/"/g, '\\"')}", "${(item.category || '').replace(/"/g, '\\"')}", ${JSON.stringify(item.details || '')})'>شراء 🛒</button>` : 
-                                        `<div class="my-product-badge">منتجك ⭐</div>`)
-                                }
+            } else {
+                filteredItems.forEach((item, index) => {
+                    const isMyProduct = item.seller_id == currentUserId;
+                    const isSold = item.sold === true;
+                    const productHTML = `
+                        <div class="product-card ${isSold ? 'sold-product' : ''}">
+                            ${isSold ? '<div class="sold-ribbon">مباع ✓</div>' : ''}
+                            <div class="product-image">
+                                ${item.image_url ? `<img src="${item.image_url}" alt="${item.item_name}">` : '🎁'}
+                            </div>
+                            ${item.category ? `<div class="product-badge">${item.category}</div>` : ''}
+                            <div class="product-info">
+                                ${item.category ? `<span class="product-category">${item.category}</span>` : ''}
+                                <div class="product-name">${item.item_name}</div>
+                                <div class="product-seller">🏪 ${item.seller_name}</div>
+                                ${isSold && item.buyer_name ? `<div class="sold-info">🎉 تم شراءه بواسطة: ${item.buyer_name}</div>` : ''}
+                                <div class="product-footer">
+                                    <div class="product-price">${item.price} ريال</div>
+                                    ${isSold ? 
+                                        `<button class="product-buy-btn" disabled style="opacity: 0.5; cursor: not-allowed;">مباع 🚫</button>` :
+                                        (!isMyProduct ? 
+                                            `<button class="product-buy-btn" onclick='buyItem("${item.id}", ${item.price}, "${(item.item_name || '').replace(/"/g, '\\"')}", "${(item.category || '').replace(/"/g, '\\"')}", ${JSON.stringify(item.details || '')})'>شراء 🛒</button>` : 
+                                            `<div class="my-product-badge">منتجك ⭐</div>`)
+                                    }
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-                market.innerHTML += productHTML;
+                    `;
+                    market.innerHTML += productHTML;
+                });
+            }
+            
+            // تصفية المنتجات المباعة أيضاً
+            filterSoldByMainCategory(category);
+        }
+        
+        // دالة لتصفية المنتجات المباعة بناءً على اختيار القسم الرئيسي
+        function filterSoldByMainCategory(category) {
+            document.querySelectorAll('.sold-item-card').forEach(card => {
+                if(category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // تحديث عداد المنتجات المباعة الظاهرة
+            const visibleSoldItems = document.querySelectorAll('.sold-item-card[style*="display: block"], .sold-item-card:not([style*="display"])').length;
+            let filteredCount = 0;
+            document.querySelectorAll('.sold-item-card').forEach(card => {
+                if(category === 'all' || card.dataset.category === category) {
+                    filteredCount++;
+                }
+            });
+            
+            // تحديث زر الكل في المنتجات المباعة
+            const allBtn = document.querySelector('.sold-cat-btn[data-cat="all"]');
+            if(allBtn) {
+                if(category === 'all') {
+                    allBtn.style.background = '#e74c3c';
+                } else {
+                    allBtn.style.background = '#444';
+                }
+            }
+            
+            // تحديث الأزرار الأخرى
+            document.querySelectorAll('.sold-cat-btn').forEach(btn => {
+                if(btn.dataset.cat === category) {
+                    btn.style.background = '#e74c3c';
+                } else if(category !== 'all') {
+                    btn.style.background = '#444';
+                }
             });
         }
 
