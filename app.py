@@ -13,6 +13,13 @@ import uuid
 import firebase_admin
 from firebase_admin import credentials, firestore
 
+# محاولة استيراد FieldFilter للنسخ الجديدة
+try:
+    from google.cloud.firestore_v1.base_query import FieldFilter
+    USE_FIELD_FILTER = True
+except ImportError:
+    USE_FIELD_FILTER = False
+
 # --- إعدادات Firebase ---
 # التحقق من وجود متغير البيئة أولاً (للإنتاج في Render)
 firebase_credentials_json = os.environ.get("FIREBASE_CREDENTIALS")
@@ -81,6 +88,15 @@ verification_codes = {}
 charge_keys = {}
 
 # --- دوال مساعدة ---
+
+# دالة للتعامل مع where بالطريقة المتوافقة
+def query_where(collection_ref, field, op, value):
+    """استخدام where بطريقة متوافقة مع جميع النسخ"""
+    if USE_FIELD_FILTER:
+        return collection_ref.where(filter=FieldFilter(field, op, value))
+    else:
+        return collection_ref.where(field, op, value)
+
 def get_balance(user_id):
     """جلب الرصيد من Firebase"""
     try:
@@ -198,7 +214,7 @@ def load_data_from_firebase():
         
         # 1. تحميل المنتجات (غير المباعة فقط)
         print("🔄 جاري تحميل المنتجات من Firestore...")
-        products_ref = db.collection('products').where('sold', '==', False)
+        products_ref = query_where(db.collection('products'), 'sold', '==', False)
         marketplace_items = []
         for doc in products_ref.stream():
             data = doc.to_dict()
@@ -218,7 +234,7 @@ def load_data_from_firebase():
         print(f"✅ تم تحميل {len(users_wallets)} مستخدم من Firestore")
         
         # 3. تحميل مفاتيح الشحن (غير المستخدمة فقط)
-        keys_ref = db.collection('charge_keys').where('used', '==', False)
+        keys_ref = query_where(db.collection('charge_keys'), 'used', '==', False)
         charge_keys = {}
         for doc in keys_ref.stream():
             data = doc.to_dict()
@@ -231,7 +247,7 @@ def load_data_from_firebase():
         print(f"✅ تم تحميل {len(charge_keys)} مفتاح شحن")
         
         # 4. تحميل الطلبات النشطة (pending فقط)
-        orders_ref = db.collection('orders').where('status', '==', 'pending')
+        orders_ref = query_where(db.collection('orders'), 'status', '==', 'pending')
         active_orders = {}
         for doc in orders_ref.stream():
             data = doc.to_dict()
@@ -2611,7 +2627,7 @@ def index():
     items = []
     try:
         # جلب المنتجات التي لم تُبع (sold == False)
-        docs = db.collection('products').where('sold', '==', False).stream()
+        docs = query_where(db.collection('products'), 'sold', '==', False).stream()
         
         for doc in docs:
             p = doc.to_dict()
