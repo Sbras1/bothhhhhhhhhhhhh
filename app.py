@@ -89,12 +89,139 @@ def add_balance(user_id, amount):
     if uid not in users_wallets:
         users_wallets[uid] = 0.0
     users_wallets[uid] += float(amount)
+    
+    # حفظ في Firebase أيضاً
+    try:
+        db.collection('users').document(uid).set({
+            'balance': users_wallets[uid],
+            'telegram_id': uid,
+            'updated_at': firestore.SERVER_TIMESTAMP
+        }, merge=True)
+    except Exception as e:
+        print(f"⚠️ خطأ في حفظ الرصيد إلى Firebase: {e}")
 
 # إضافة UUID للمنتجات الموجودة (إذا لم يكن لديها ID)
 def ensure_product_ids():
     for item in marketplace_items:
         if 'id' not in item:
             item['id'] = str(uuid.uuid4())
+
+# دالة لرفع البيانات من الذاكرة إلى Firebase
+def migrate_data_to_firebase():
+    """نقل البيانات من المتغيرات في الذاكرة إلى Firebase"""
+    try:
+        print("🔄 بدء نقل البيانات إلى Firebase...")
+        
+        # 1. رفع المنتجات
+        if marketplace_items:
+            products_ref = db.collection('products')
+            for item in marketplace_items:
+                product_id = item.get('id', str(uuid.uuid4()))
+                products_ref.document(product_id).set({
+                    'item_name': item.get('item_name', ''),
+                    'price': float(item.get('price', 0)),
+                    'seller_id': str(item.get('seller_id', '')),
+                    'seller_name': item.get('seller_name', ''),
+                    'hidden_data': item.get('hidden_data', ''),
+                    'image_url': item.get('image_url', ''),
+                    'category': item.get('category', 'أخرى'),
+                    'details': item.get('details', ''),
+                    'sold': item.get('sold', False),
+                    'created_at': firestore.SERVER_TIMESTAMP
+                })
+            print(f"✅ تم رفع {len(marketplace_items)} منتج")
+        
+        # 2. رفع أرصدة المستخدمين
+        if users_wallets:
+            users_ref = db.collection('users')
+            for user_id, balance in users_wallets.items():
+                users_ref.document(str(user_id)).set({
+                    'balance': float(balance),
+                    'telegram_id': str(user_id),
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                }, merge=True)
+            print(f"✅ تم رفع {len(users_wallets)} مستخدم")
+        
+        # 3. رفع الطلبات النشطة
+        if active_orders:
+            orders_ref = db.collection('orders')
+            for order_id, order_data in active_orders.items():
+                orders_ref.document(str(order_id)).set({
+                    'item_name': order_data.get('item_name', ''),
+                    'price': float(order_data.get('price', 0)),
+                    'buyer_id': str(order_data.get('buyer_id', '')),
+                    'buyer_name': order_data.get('buyer_name', ''),
+                    'seller_id': str(order_data.get('seller_id', '')),
+                    'status': order_data.get('status', 'pending'),
+                    'admin_id': str(order_data.get('admin_id', '')) if order_data.get('admin_id') else '',
+                    'created_at': firestore.SERVER_TIMESTAMP
+                })
+            print(f"✅ تم رفع {len(active_orders)} طلب")
+        
+        # 4. رفع مفاتيح الشحن
+        if charge_keys:
+            keys_ref = db.collection('charge_keys')
+            for key_code, key_data in charge_keys.items():
+                keys_ref.document(key_code).set({
+                    'amount': float(key_data.get('amount', 0)),
+                    'used': key_data.get('used', False),
+                    'used_by': str(key_data.get('used_by', '')) if key_data.get('used_by') else '',
+                    'created_at': key_data.get('created_at', time.time())
+                })
+            print(f"✅ تم رفع {len(charge_keys)} مفتاح شحن")
+        
+        print("🎉 تم رفع جميع البيانات إلى Firebase بنجاح!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ خطأ في رفع البيانات: {e}")
+        return False
+
+# دالة لتحميل البيانات من Firebase إلى الذاكرة (عند بدء التشغيل)
+def load_data_from_firebase():
+    """تحميل البيانات من Firebase إلى المتغيرات في الذاكرة للاستخدام السريع"""
+    global marketplace_items, users_wallets, charge_keys
+    
+    try:
+        print("📥 بدء تحميل البيانات من Firebase...")
+        
+        # 1. تحميل المنتجات
+        products_ref = db.collection('products')
+        marketplace_items = []
+        for doc in products_ref.stream():
+            data = doc.to_dict()
+            data['id'] = doc.id
+            marketplace_items.append(data)
+        print(f"✅ تم تحميل {len(marketplace_items)} منتج")
+        
+        # 2. تحميل أرصدة المستخدمين
+        users_ref = db.collection('users')
+        users_wallets = {}
+        for doc in users_ref.stream():
+            data = doc.to_dict()
+            users_wallets[doc.id] = data.get('balance', 0.0)
+        print(f"✅ تم تحميل {len(users_wallets)} مستخدم")
+        
+        # 3. تحميل مفاتيح الشحن
+        keys_ref = db.collection('charge_keys')
+        charge_keys = {}
+        for doc in keys_ref.stream():
+            data = doc.to_dict()
+            charge_keys[doc.id] = {
+                'amount': data.get('amount', 0),
+                'used': data.get('used', False),
+                'used_by': data.get('used_by'),
+                'created_at': data.get('created_at', time.time())
+            }
+        print(f"✅ تم تحميل {len(charge_keys)} مفتاح شحن")
+        
+        print("🎉 تم تحميل جميع البيانات من Firebase بنجاح!")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ تحذير: لم يتم تحميل البيانات من Firebase: {e}")
+        print("سيتم البدء ببيانات فارغة")
+        return False
 
 # دالة لتوليد كود تحقق عشوائي
 def generate_verification_code(user_id, user_name):
@@ -2538,6 +2665,33 @@ def set_webhook():
 def health():
     return {'status': 'ok'}, 200
 
+# مسار لرفع البيانات إلى Firebase (للمالك فقط)
+@app.route('/migrate_to_firebase')
+def migrate_to_firebase_route():
+    # التحقق من أن المستخدم هو المالك (يمكنك إضافة password parameter)
+    password = request.args.get('password', '')
+    admin_password = os.environ.get('ADMIN_PASS', 'admin123')
+    
+    if password != admin_password:
+        return {'status': 'error', 'message': 'غير مصرح'}, 403
+    
+    # تنفيذ الرفع
+    success = migrate_data_to_firebase()
+    
+    if success:
+        return {
+            'status': 'success',
+            'message': 'تم رفع البيانات بنجاح إلى Firebase',
+            'data': {
+                'products': len(marketplace_items),
+                'users': len(users_wallets),
+                'orders': len(active_orders),
+                'keys': len(charge_keys)
+            }
+        }, 200
+    else:
+        return {'status': 'error', 'message': 'فشل رفع البيانات'}, 500
+
 # صفحة تسجيل الدخول للوحة التحكم (HTML منفصل)
 LOGIN_HTML = """
 <!DOCTYPE html>
@@ -3327,9 +3481,14 @@ def logout_admin():
     return redirect('/dashboard')
 
 if __name__ == "__main__":
+    # تحميل البيانات من Firebase عند بدء التشغيل
+    print("🚀 بدء تشغيل التطبيق...")
+    load_data_from_firebase()
+    
     # التأكد من أن جميع المنتجات لديها UUID
     ensure_product_ids()
     
     # هذا السطر يجعل البوت يعمل على المنفذ الصحيح في ريندر أو 10000 في جهازك
     port = int(os.environ.get("PORT", 10000))
+    print(f"✅ التطبيق يعمل على المنفذ {port}")
     app.run(host="0.0.0.0", port=port)
