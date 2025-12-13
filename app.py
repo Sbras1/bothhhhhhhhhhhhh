@@ -2653,63 +2653,72 @@ def dashboard():
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                 background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
                 min-height: 100vh;
-                padding: 20px;
+                padding: 10px;
                 color: #333;
+                font-size: 14px;
             }}
             .container {{
-                max-width: 1400px;
+                max-width: 480px;
                 margin: 0 auto;
             }}
             .header {{
                 background: white;
-                padding: 20px 30px;
-                border-radius: 15px;
-                margin-bottom: 20px;
+                padding: 12px 15px;
+                border-radius: 10px;
+                margin-bottom: 15px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                flex-wrap: wrap;
+                gap: 8px;
             }}
-            .header h1 {{ color: #667eea; font-size: 28px; }}
+            .header h1 {{ color: #667eea; font-size: 18px; width: 100%; text-align: center; margin-bottom: 5px; }}
             .logout-btn {{
                 background: #e74c3c;
                 color: white;
-                padding: 10px 20px;
+                padding: 8px 12px;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 cursor: pointer;
                 font-weight: bold;
+                font-size: 12px;
+                flex: 1;
+                min-width: 100px;
             }}
             .stats-grid {{
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 15px;
-                margin-bottom: 20px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                margin-bottom: 15px;
             }}
             .stat-card {{
                 background: white;
-                padding: 20px;
-                border-radius: 15px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                padding: 12px;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
                 text-align: center;
             }}
-            .stat-card .icon {{ font-size: 40px; margin-bottom: 10px; }}
-            .stat-card .value {{ font-size: 32px; font-weight: bold; color: #667eea; }}
-            .stat-card .label {{ color: #888; margin-top: 5px; }}
+            .stat-card .icon {{ font-size: 28px; margin-bottom: 5px; }}
+            .stat-card .value {{ font-size: 22px; font-weight: bold; color: #667eea; }}
+            .stat-card .label {{ color: #888; margin-top: 3px; font-size: 11px; }}
             .section {{
                 background: white;
-                padding: 25px;
-                border-radius: 15px;
-                margin-bottom: 20px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                padding: 12px;
+                border-radius: 10px;
+                margin-bottom: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             }}
-            .section h2 {{ color: #667eea; margin-bottom: 20px; border-bottom: 3px solid #667eea; padding-bottom: 10px; }}
+            .section h2 {{ color: #667eea; margin-bottom: 12px; border-bottom: 2px solid #667eea; padding-bottom: 8px; font-size: 16px; }}
             table {{
                 width: 100%;
                 border-collapse: collapse;
+                font-size: 12px;
+                overflow-x: auto;
+                display: block;
             }}
             th, td {{
-                padding: 12px;
+                padding: 8px 6px;
                 text-align: right;
                 border-bottom: 1px solid #ddd;
             }}
@@ -2717,13 +2726,14 @@ def dashboard():
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
                 font-weight: bold;
+                font-size: 11px;
             }}
             tr:hover {{ background: #f5f5f5; }}
             .badge {{
                 display: inline-block;
-                padding: 5px 12px;
-                border-radius: 15px;
-                font-size: 12px;
+                padding: 3px 8px;
+                border-radius: 10px;
+                font-size: 10px;
                 font-weight: bold;
             }}
             .badge-success {{ background: #00b894; color: white; }}
@@ -2732,34 +2742,49 @@ def dashboard():
             .badge-info {{ background: #74b9ff; color: white; }}
             .tools {{
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 15px;
+                grid-template-columns: 1fr;
+                gap: 10px;
             }}
             .tool-box {{
                 background: #f8f9fa;
-                padding: 20px;
-                border-radius: 10px;
-                border-left: 4px solid #667eea;
+                padding: 12px;
+                border-radius: 8px;
+                border-left: 3px solid #667eea;
             }}
-            .tool-box h3 {{ color: #667eea; margin-bottom: 15px; }}
+            .tool-box h3 {{ color: #667eea; margin-bottom: 10px; font-size: 14px; }}
             .tool-box input, .tool-box select {{
                 width: 100%;
-                padding: 10px;
+                padding: 8px;
                 border: 2px solid #ddd;
-                border-radius: 8px;
-                margin-bottom: 10px;
+                border-radius: 6px;
+                margin-bottom: 8px;
+                font-size: 13px;
             }}
             .tool-box button {{
                 width: 100%;
-                padding: 12px;
+                padding: 10px;
                 background: linear-gradient(135deg, #667eea, #764ba2);
                 color: white;
                 border: none;
-                border-radius: 8px;
+                border-radius: 6px;
                 font-weight: bold;
                 cursor: pointer;
+                font-size: 13px;
             }}
             .tool-box button:hover {{ opacity: 0.9; }}
+            @media (max-width: 480px) {{
+                body {{ padding: 5px; }}
+                .container {{ max-width: 100%; }}
+                .header {{ padding: 10px; }}
+                .header h1 {{ font-size: 16px; }}
+                .logout-btn {{ font-size: 11px; padding: 6px 10px; }}
+                .stats-grid {{ gap: 8px; }}
+                .stat-card {{ padding: 10px; }}
+                .stat-card .icon {{ font-size: 24px; }}
+                .stat-card .value {{ font-size: 18px; }}
+                .section {{ padding: 10px; }}
+                th, td {{ padding: 6px 4px; font-size: 11px; }}
+            }}
         </style>
     </head>
     <body>
@@ -2833,15 +2858,15 @@ def dashboard():
                         <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">📋 التفاصيل</label>
                         <textarea id="productDetails" placeholder="مثال: ✅ اشتراك شهر كامل&#10;✅ 4 شاشات UHD&#10;✅ بدون إعلانات" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; min-height: 100px; resize: vertical;"></textarea>
                     </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🖼️ رابط الصورة (اختياري)</label>
-                        <input type="url" id="productImage" placeholder="https://example.com/image.jpg" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px;">
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">🖼️ رابط الصورة</label>
+                        <input type="url" id="productImage" placeholder="https://..." style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 12px;">
                     </div>
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; color: #667eea; font-weight: bold;">🔐 البيانات المخفية (الايميل والباسورد)</label>
-                        <textarea id="productHiddenData" placeholder="البريد: test@gmail.com&#10;الباسورد: 123456" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; min-height: 80px; resize: vertical;"></textarea>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 4px; color: #667eea; font-weight: bold; font-size: 12px;">🔐 البيانات المخفية</label>
+                        <textarea id="productHiddenData" placeholder="البريد: test@gmail.com&#10;الباسورد: 123456" style="width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; min-height: 60px; resize: vertical; font-size: 12px;"></textarea>
                     </div>
-                    <button onclick="addProduct()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;">
+                    <button onclick="addProduct()" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">
                         ➕ إضافة المنتج
                     </button>
                 </div>
