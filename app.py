@@ -2898,7 +2898,8 @@ def dashboard():
         </div>
         
         <script>
-            function addBalance() {{
+            // Dashboard Control Panel Functions v2.0
+            window.addBalance = function() {{
                 const userId = document.getElementById('userId').value;
                 const amount = document.getElementById('amount').value;
                 
@@ -2934,7 +2935,7 @@ def dashboard():
                 }});
             }}
             
-            function addProduct() {{
+            window.addProduct = function() {{
                 const name = document.getElementById('productName').value;
                 const price = document.getElementById('productPrice').value;
                 const category = document.getElementById('productCategory').value;
@@ -2980,7 +2981,7 @@ def dashboard():
                 }});
             }}
             
-            function generateKeys() {{
+            window.generateKeys = function() {{
                 const amount = document.getElementById('keyAmount').value;
                 const count = document.getElementById('keyCount').value;
                 
@@ -3014,7 +3015,7 @@ def dashboard():
                 }});
             }}
             
-            function showKeysModal(keys, amount) {{
+            window.showKeysModal = function(keys, amount) {{
                 const modal = document.getElementById('keysModal');
                 const container = document.getElementById('keysContainer');
                 const countText = document.getElementById('keysCount');
@@ -3033,7 +3034,7 @@ def dashboard():
                 modal.style.display = 'block';
             }}
             
-            function copyKey(key, btn) {{
+            window.copyKey = function(key, btn) {{
                 navigator.clipboard.writeText(key).then(() => {{
                     btn.textContent = '✅ تم النسخ';
                     btn.classList.add('copied');
@@ -3046,7 +3047,7 @@ def dashboard():
                 }});
             }}
             
-            function closeKeysModal() {{
+            window.closeKeysModal = function() {{
                 document.getElementById('keysModal').style.display = 'none';
                 location.reload();
             }}
