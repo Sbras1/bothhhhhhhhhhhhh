@@ -2968,9 +2968,26 @@ def dashboard():
                 }
             ))
 
-        # المفاتيح - نستخدم charge_keys في الذاكرة حالياً
-        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
-        used_keys = len([k for k, v in charge_keys.items() if v['used']])
+        # المفاتيح - جلبها من Firebase مباشرة
+        keys_ref = db.collection('charge_keys')
+        all_keys_docs = list(keys_ref.stream())
+        
+        # تحضير قائمة المفاتيح للعرض
+        charge_keys_display = {}
+        active_keys = 0
+        used_keys = 0
+        
+        for k in all_keys_docs:
+            data = k.to_dict()
+            key_code = k.id
+            is_used = data.get('used', False)
+            
+            if is_used:
+                used_keys += 1
+            else:
+                active_keys += 1
+            
+            charge_keys_display[key_code] = data
         
         # إجمالي الطلبات
         total_orders = len(list(orders_ref.stream()))
@@ -2992,8 +3009,9 @@ def dashboard():
         total_orders = 0
         recent_orders = []
         users_list = []
-        active_keys = len([k for k, v in charge_keys.items() if not v['used']])
-        used_keys = len([k for k, v in charge_keys.items() if v['used']])
+        active_keys = len([k for k, v in charge_keys.items() if not v.get('used', False)])
+        used_keys = len([k for k, v in charge_keys.items() if v.get('used', False)])
+        charge_keys_display = charge_keys
     
     return f"""
     <!DOCTYPE html>
@@ -3343,13 +3361,13 @@ def dashboard():
                         </tr>
                     </thead>
                     <tbody>
-                        {''.join([f'''
+                        {''.join([f"""
                         <tr>
                             <td><code>{key_code}</code></td>
-                            <td>{key_data['amount']} ريال</td>
-                            <td><span class="badge {'badge-success' if not key_data['used'] else 'badge-danger'}">{'نشط' if not key_data['used'] else f"مستخدم بواسطة {key_data.get('used_by', 'N/A')}"}</span></td>
+                            <td>{key_data.get('amount', 0)} ريال</td>
+                            <td><span class="badge {'badge-success' if not key_data.get('used', False) else 'badge-danger'}">{'نشط' if not key_data.get('used', False) else f"مستخدم"}</span></td>
                         </tr>
-                        ''' for key_code, key_data in list(charge_keys.items())[:20]]) if charge_keys else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
+                        """ for key_code, key_data in list(charge_keys_display.items())[:20]]) if charge_keys_display else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
                     </tbody>
                 </table>
             </div>
