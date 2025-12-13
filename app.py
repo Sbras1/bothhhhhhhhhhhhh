@@ -3433,99 +3433,101 @@ def api_add_balance():
     
     return {'status': 'success'}
 
-# API لإضافة منتج من لوحة التحكم
+# --- API لإضافة منتج (مصحح للحفظ في Firebase) ---
 @app.route('/api/add_product', methods=['POST'])
 def api_add_product():
-    data = request.json
-    name = data.get('name')
-    price = data.get('price')
-    category = data.get('category')
-    details = data.get('details', '')
-    image = data.get('image', 'https://via.placeholder.com/300x200?text=No+Image')
-    hidden_data = data.get('hidden_data')
-    
-    if not name or not price or not hidden_data:
-        return {'status': 'error', 'message': 'بيانات غير كاملة'}
-    
-    # تجهيز المنتج
-    new_item = {
-        'id': str(uuid.uuid4()),
-        'item_name': name,
-        'price': float(price),
-        'seller_id': str(ADMIN_ID),
-        'seller_name': 'المالك',
-        'hidden_data': hidden_data,
-        'category': category,
-        'details': details,
-        'image_url': image,
-        'sold': False,
-        'created_at': firestore.SERVER_TIMESTAMP
-    }
-    
-    # 1. الحفظ في Firebase فوراً
     try:
-        db.collection('products').document(new_item['id']).set(new_item)
+        data = request.json
+        name = data.get('name')
+        price = data.get('price')
+        category = data.get('category')
+        details = data.get('details', '')
+        image = data.get('image', '')
+        hidden_data = data.get('hidden_data')
         
-        # 2. تحديث الذاكرة أيضاً (للسرعة)
-        marketplace_items.append(new_item)
+        # التحقق من البيانات
+        if not name or not price or not hidden_data:
+            return {'status': 'error', 'message': 'بيانات غير كاملة'}
         
-        # إشعار المالك في البوت
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                f"✅ **تم إضافة منتج جديد من لوحة التحكم**\n\n"
-                f"📦 المنتج: {name}\n"
-                f"💰 السعر: {price} ريال\n"
-                f"🏷️ الفئة: {category}\n"
-                f"📊 إجمالي المنتجات: {len(marketplace_items)}",
-                parse_mode="Markdown"
-            )
-        except:
-            pass
-        
-        return {'status': 'success', 'message': 'تم الحفظ في قاعدة البيانات'}
-        
-    except Exception as e:
-        return {'status': 'error', 'message': f'فشل الحفظ في Firebase: {e}'}
-
-# API لتوليد مفاتيح من لوحة التحكم
-@app.route('/api/generate_keys', methods=['POST'])
-def api_generate_keys():
-    data = request.json
-    amount = float(data.get('amount'))
-    count = int(data.get('count', 1))
-    
-    if amount <= 0 or count <= 0 or count > 100:
-        return {'status': 'error', 'message': 'بيانات غير صحيحة'}
-    
-    generated_keys = []
-    batch = db.batch()  # نستخدم Batch للحفظ السريع
-    
-    for i in range(count):
-        key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
-        key_data = {
-            'amount': amount,
-            'used': False,
-            'used_by': None,
+        # إنشاء بيانات المنتج
+        new_id = str(uuid.uuid4())
+        item = {
+            'id': new_id,
+            'item_name': name,
+            'price': float(price),
+            'seller_id': str(ADMIN_ID),
+            'seller_name': 'المالك',
+            'hidden_data': hidden_data,
+            'category': category,
+            'details': details,
+            'image_url': image,
+            'sold': False,
             'created_at': firestore.SERVER_TIMESTAMP
         }
         
-        # إضافة للذاكرة
-        charge_keys[key_code] = key_data.copy()
-        charge_keys[key_code]['created_at'] = time.time()  # للذاكرة نستخدم timestamp عادي
+        # 1. الحفظ في Firebase (المهم)
+        db.collection('products').document(new_id).set(item)
         
-        # تجهيز للحفظ في Firebase
-        doc_ref = db.collection('charge_keys').document(key_code)
-        batch.set(doc_ref, key_data)
+        # 2. تحديث الذاكرة المحلية (للعرض السريع)
+        marketplace_items.append(item)
         
-        generated_keys.append(key_code)
-    
-    # تنفيذ الحفظ
-    try:
-        batch.commit()
-        return {'status': 'success', 'keys': generated_keys}
+        # 3. إشعار المالك (داخل try/except لضمان عدم توقف العملية)
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"✅ **تم إضافة منتج جديد**\n📦 {name}\n💰 {price} ريال",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            print(f"فشل إرسال الإشعار: {e}")
+            
+        return {'status': 'success', 'message': 'تم الحفظ في قاعدة البيانات'}
+
     except Exception as e:
-        return {'status': 'error', 'message': f'فشل الحفظ: {e}'}
+        print(f"Error in add_product: {e}")
+        return {'status': 'error', 'message': f'حدث خطأ في السيرفر: {str(e)}'}
+
+# --- API لتوليد المفاتيح (مصحح للحفظ في Firebase) ---
+@app.route('/api/generate_keys', methods=['POST'])
+def api_generate_keys():
+    try:
+        data = request.json
+        amount = float(data.get('amount'))
+        count = int(data.get('count', 1))
+        
+        if amount <= 0 or count <= 0 or count > 100:
+            return {'status': 'error', 'message': 'أرقام غير صحيحة'}
+        
+        generated_keys = []
+        batch = db.batch() # استخدام الدفعات للحفظ السريع
+        
+        for _ in range(count):
+            # إنشاء كود عشوائي
+            key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
+            
+            key_data = {
+                'amount': amount,
+                'used': False,
+                'used_by': None,
+                'created_at': firestore.SERVER_TIMESTAMP
+            }
+            
+            # تجهيز الحفظ في Firebase
+            doc_ref = db.collection('charge_keys').document(key_code)
+            batch.set(doc_ref, key_data)
+            
+            # تحديث الذاكرة
+            charge_keys[key_code] = key_data
+            generated_keys.append(key_code)
+            
+        # تنفيذ الحفظ في Firebase دفعة واحدة
+        batch.commit()
+        
+        return {'status': 'success', 'keys': generated_keys}
+
+    except Exception as e:
+        print(f"Error generating keys: {e}")
+        return {'status': 'error', 'message': f'فشل التوليد: {str(e)}'}
 
 # مسار لتسجيل خروج الآدمن
 @app.route('/logout_admin')
