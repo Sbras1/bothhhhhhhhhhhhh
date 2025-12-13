@@ -10,6 +10,25 @@ import random
 import hashlib
 import time
 import uuid
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# --- إعدادات Firebase ---
+# التحقق من وجود متغير البيئة أولاً (للإنتاج في Render)
+firebase_credentials_json = os.environ.get("FIREBASE_CREDENTIALS")
+
+if firebase_credentials_json:
+    # استخدام المتغير البيئي (Render)
+    cred_dict = json.loads(firebase_credentials_json)
+    cred = credentials.Certificate(cred_dict)
+    print("✅ Firebase: استخدام المتغير البيئي (Production)")
+else:
+    # استخدام الملف المحلي (للتطوير)
+    cred = credentials.Certificate('serviceAccountKey.json')
+    print("✅ Firebase: استخدام الملف المحلي (Development)")
+
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 # --- إعدادات البوت ---
 # غير هذا الرقم إلى الآيدي الخاص بك في تيليجرام لتتمكن من شحن الأرصدة
