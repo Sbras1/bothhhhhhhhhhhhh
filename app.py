@@ -2559,17 +2559,24 @@ def buy_item():
     if buyer_balance < price:
         return {'status': 'error', 'message': 'الرصيد غير كافي'}
     
-    # 2. خصم الرصيد
-    users_wallets[buyer_id] -= price
+    # 2. خصم الرصيد وتحديث Firebase
+    new_balance = buyer_balance - price
+    users_wallets[buyer_id] = new_balance  # تحديث الذاكرة
     
-    # 3. تحويل المال للبائع فوراً
+    try:
+        # تحديث Firebase (رصيد المشتري)
+        db.collection('users').document(str(buyer_id)).update({'balance': new_balance})
+    except Exception as e:
+        print(f"⚠️ خطأ في تحديث رصيد المشتري في Firebase: {e}")
+    
+    # 3. تحويل المال للبائع فوراً (add_balance يحدث Firebase تلقائياً)
     add_balance(item['seller_id'], price)
     
     # 4. إنشاء معرف فريد للطلب
     order_id = f"ORD_{random.randint(100000, 999999)}"
     
-    # 5. حفظ الطلب في قائمة الطلبات (للسجل فقط)
-    active_orders[order_id] = {
+    # 5. حفظ الطلب في Firebase والذاكرة
+    order_data = {
         'buyer_id': buyer_id,
         'buyer_name': buyer_name,
         'item_name': item['item_name'],
@@ -2579,12 +2586,31 @@ def buy_item():
         'seller_name': item['seller_name'],
         'status': 'completed',
         'admin_id': str(ADMIN_ID),
-        'message_id': None
+        'created_at': firestore.SERVER_TIMESTAMP
     }
     
-    # 6. تحديد المنتج كمباع
+    active_orders[order_id] = order_data
+    
+    try:
+        # حفظ الطلب في Firebase
+        db.collection('orders').document(order_id).set(order_data)
+    except Exception as e:
+        print(f"⚠️ خطأ في حفظ الطلب في Firebase: {e}")
+    
+    # 6. تحديث المنتج كمباع في Firebase والذاكرة
     marketplace_items[item_index]['sold'] = True
     marketplace_items[item_index]['buyer_name'] = buyer_name
+    
+    if item.get('id'):
+        try:
+            db.collection('products').document(item['id']).update({
+                'sold': True,
+                'buyer_id': str(buyer_id),
+                'buyer_name': buyer_name,
+                'sold_at': firestore.SERVER_TIMESTAMP
+            })
+        except Exception as e:
+            print(f"⚠️ خطأ في تحديث المنتج في Firebase: {e}")
     
     # 7. إرسال البيانات المخفية للمشتري فوراً
     hidden_info = item.get('hidden_data', 'لا توجد بيانات إضافية')
@@ -3421,35 +3447,46 @@ def api_add_product():
     if not name or not price or not hidden_data:
         return {'status': 'error', 'message': 'بيانات غير كاملة'}
     
-    # إضافة المنتج
-    item = {
-        'id': str(uuid.uuid4()),  # رقم فريد لا يتكرر
+    # تجهيز المنتج
+    new_item = {
+        'id': str(uuid.uuid4()),
         'item_name': name,
-        'price': str(price),
+        'price': float(price),
         'seller_id': str(ADMIN_ID),
         'seller_name': 'المالك',
         'hidden_data': hidden_data,
         'category': category,
         'details': details,
-        'image_url': image
+        'image_url': image,
+        'sold': False,
+        'created_at': firestore.SERVER_TIMESTAMP
     }
-    marketplace_items.append(item)
     
-    # إشعار المالك في البوت
+    # 1. الحفظ في Firebase فوراً
     try:
-        bot.send_message(
-            ADMIN_ID,
-            f"✅ **تم إضافة منتج جديد من لوحة التحكم**\n\n"
-            f"📦 المنتج: {name}\n"
-            f"💰 السعر: {price} ريال\n"
-            f"🏷️ الفئة: {category}\n"
-            f"📊 إجمالي المنتجات: {len(marketplace_items)}",
-            parse_mode="Markdown"
-        )
-    except:
-        pass
-    
-    return {'status': 'success', 'message': 'تم إضافة المنتج بنجاح'}
+        db.collection('products').document(new_item['id']).set(new_item)
+        
+        # 2. تحديث الذاكرة أيضاً (للسرعة)
+        marketplace_items.append(new_item)
+        
+        # إشعار المالك في البوت
+        try:
+            bot.send_message(
+                ADMIN_ID,
+                f"✅ **تم إضافة منتج جديد من لوحة التحكم**\n\n"
+                f"📦 المنتج: {name}\n"
+                f"💰 السعر: {price} ريال\n"
+                f"🏷️ الفئة: {category}\n"
+                f"📊 إجمالي المنتجات: {len(marketplace_items)}",
+                parse_mode="Markdown"
+            )
+        except:
+            pass
+        
+        return {'status': 'success', 'message': 'تم الحفظ في قاعدة البيانات'}
+        
+    except Exception as e:
+        return {'status': 'error', 'message': f'فشل الحفظ في Firebase: {e}'}
 
 # API لتوليد مفاتيح من لوحة التحكم
 @app.route('/api/generate_keys', methods=['POST'])
@@ -3462,17 +3499,33 @@ def api_generate_keys():
         return {'status': 'error', 'message': 'بيانات غير صحيحة'}
     
     generated_keys = []
+    batch = db.batch()  # نستخدم Batch للحفظ السريع
+    
     for i in range(count):
         key_code = f"KEY-{random.randint(10000, 99999)}-{random.randint(1000, 9999)}"
-        charge_keys[key_code] = {
+        key_data = {
             'amount': amount,
             'used': False,
             'used_by': None,
-            'created_at': time.time()
+            'created_at': firestore.SERVER_TIMESTAMP
         }
+        
+        # إضافة للذاكرة
+        charge_keys[key_code] = key_data.copy()
+        charge_keys[key_code]['created_at'] = time.time()  # للذاكرة نستخدم timestamp عادي
+        
+        # تجهيز للحفظ في Firebase
+        doc_ref = db.collection('charge_keys').document(key_code)
+        batch.set(doc_ref, key_data)
+        
         generated_keys.append(key_code)
     
-    return {'status': 'success', 'keys': generated_keys}
+    # تنفيذ الحفظ
+    try:
+        batch.commit()
+        return {'status': 'success', 'keys': generated_keys}
+    except Exception as e:
+        return {'status': 'error', 'message': f'فشل الحفظ: {e}'}
 
 # مسار لتسجيل خروج الآدمن
 @app.route('/logout_admin')
