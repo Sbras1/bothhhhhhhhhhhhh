@@ -1527,43 +1527,6 @@ HTML_PAGE = """
                 <span class="sidebar-menu-text">مشترياتي</span>
                 {% if my_purchases %}<span class="sidebar-menu-badge">{{ my_purchases|length }}</span>{% endif %}
             </div>
-            <div class="sidebar-menu-item" onclick="toggleCharge(); closeSidebar();">
-                <span class="sidebar-menu-icon">💳</span>
-                <span class="sidebar-menu-text">شحن الرصيد</span>
-            </div>
-        </div>
-        
-        <div class="sidebar-divider"></div>
-        
-        <!-- الأقسام -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">الأقسام</div>
-            <div class="sidebar-categories">
-                <div class="sidebar-cat-item" onclick="filterCategory('نتفلكس'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/732/732228.png" alt="نتفلكس"></div>
-                    <div class="sidebar-cat-text">نتفلكس</div>
-                </div>
-                <div class="sidebar-cat-item" onclick="filterCategory('شاهد'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/3845/3845874.png" alt="شاهد"></div>
-                    <div class="sidebar-cat-text">شاهد</div>
-                </div>
-                <div class="sidebar-cat-item" onclick="filterCategory('ديزني بلس'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/5977/5977590.png" alt="ديزني بلس"></div>
-                    <div class="sidebar-cat-text">ديزني بلس</div>
-                </div>
-                <div class="sidebar-cat-item" onclick="filterCategory('اوسن بلس'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/1946/1946488.png" alt="اوسن بلس"></div>
-                    <div class="sidebar-cat-text">اوسن بلس</div>
-                </div>
-                <div class="sidebar-cat-item" onclick="filterCategory('فديو بريميم'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/3074/3074767.png" alt="فديو بريميم"></div>
-                    <div class="sidebar-cat-text">فديو بريميم</div>
-                </div>
-                <div class="sidebar-cat-item" onclick="filterCategory('اشتراكات أخرى'); closeSidebar();">
-                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/2087/2087815.png" alt="أخرى"></div>
-                    <div class="sidebar-cat-text">اشتراكات أخرى</div>
-                </div>
-            </div>
         </div>
         
         <div class="sidebar-divider"></div>
@@ -1578,10 +1541,6 @@ HTML_PAGE = """
             <div class="sidebar-menu-item" onclick="window.open('https://t.me/YourBotUsername', '_blank');">
                 <span class="sidebar-menu-icon">🤖</span>
                 <span class="sidebar-menu-text">البوت</span>
-            </div>
-            <div class="sidebar-menu-item" onclick="scrollToSection('sold'); closeSidebar();">
-                <span class="sidebar-menu-icon">📊</span>
-                <span class="sidebar-menu-text">آخر المبيعات</span>
             </div>
         </div>
         
