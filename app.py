@@ -1317,35 +1317,25 @@ HTML_PAGE = """
         <div class="account-details" style="background: linear-gradient(135deg, rgba(0, 184, 148, 0.1), rgba(85, 239, 196, 0.1)); border: 1px solid rgba(0, 184, 148, 0.3);">
             <h4 style="color: #00b894; margin: 0 0 15px 0; text-align: center;">💳 شحن رصيدك</h4>
             
-            <!-- شحن بكود -->
             <div style="margin-bottom: 20px;">
-                <label style="color: #888; font-size: 13px; display: block; margin-bottom: 8px; text-align: right;">شحن بكود:</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <button onclick="submitChargeCode()" style="padding: 12px 20px; background: linear-gradient(135deg, #00b894, #55efc4); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; height: 46px;">شحن ⚡</button>
-                    <input type="text" id="chargeCodeInput" placeholder="أدخل كود الشحن" style="flex: 1; padding: 12px; border: 2px solid #444; border-radius: 10px; background: #2d3436; color: white; font-size: 14px; text-align: right; height: 46px; box-sizing: border-box;">
+                <label style="color: #888; font-size: 13px; display: block; margin-bottom: 8px; text-align: right;">أدخل كود الشحن هنا:</label>
+                <div style="display: flex; gap: 10px; align-items: center; flex-direction: row-reverse;">
+                    <input type="text" id="chargeCodeInput" placeholder="KEY-XXXXX-XXXX" 
+                           style="flex: 1; padding: 12px; border: 2px solid #444; border-radius: 10px; background: #2d3436; color: white; font-size: 14px; text-align: center; height: 46px; box-sizing: border-box; letter-spacing: 1px; font-family: monospace;">
+                    
+                    <button onclick="submitChargeCode()" 
+                            style="padding: 0 20px; background: linear-gradient(135deg, #00b894, #55efc4); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; height: 46px; width: auto;">
+                        تفعيل ⚡
+                    </button>
                 </div>
             </div>
             
-            <!-- أزرار الشحن السريع -->
             <div>
                 <label style="color: #888; font-size: 13px; display: block; margin-bottom: 10px;">شراء رصيد:</label>
                 <div class="quick-charge-row">
-                    <a href="#" class="quick-charge-btn" id="charge20">
-                        20 ريال
-                        <span>اشتري</span>
-                    </a>
-                    <a href="#" class="quick-charge-btn" id="charge50">
-                        50 ريال
-                        <span>اشتري</span>
-                    </a>
-                    <a href="#" class="quick-charge-btn" id="charge100">
-                        100 ريال
-                        <span>اشتري</span>
-                    </a>
-                    <a href="#" class="quick-charge-btn" id="charge150">
-                        150 ريال
-                        <span>اشتري</span>
-                    </a>
+                    <a href="#" class="quick-charge-btn" onclick="copyToClipboard('20')">20 ريال</a>
+                    <a href="#" class="quick-charge-btn" onclick="copyToClipboard('50')">50 ريال</a>
+                    <a href="#" class="quick-charge-btn" onclick="copyToClipboard('100')">100 ريال</a>
                 </div>
             </div>
         </div>
@@ -1670,6 +1660,12 @@ HTML_PAGE = """
             const chargeArrow = document.getElementById("chargeArrow");
             chargeContent.classList.toggle("open");
             chargeArrow.classList.toggle("open");
+        }
+        
+        // دالة نسخ للحافظة (للأزرار)
+        function copyToClipboard(amount) {
+            // يمكنك تغيير هذا لاحقاً لفتح رابط الدفع
+            alert('💰 شراء رصيد ' + amount + ' ريال - سيتم إضافة الرابط قريباً');
         }
         
         async function submitChargeCode() {
