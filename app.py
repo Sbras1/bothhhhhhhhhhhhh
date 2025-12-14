@@ -3811,6 +3811,7 @@ def dashboard():
                             <th>المفتاح</th>
                             <th>القيمة</th>
                             <th>الحالة</th>
+                            <th>مستخدم بواسطة</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -3818,9 +3819,10 @@ def dashboard():
                         <tr>
                             <td><code>{key_code}</code></td>
                             <td>{key_data.get('amount', 0)} ريال</td>
-                            <td><span class="badge {'badge-success' if not key_data.get('used', False) else 'badge-danger'}">{'نشط' if not key_data.get('used', False) else f"مستخدم"}</span></td>
+                            <td><span class="badge {'badge-success' if not key_data.get('used', False) else 'badge-danger'}">{'نشط' if not key_data.get('used', False) else 'مستخدم'}</span></td>
+                            <td>{key_data.get('used_by', '-') if key_data.get('used', False) else '-'}</td>
                         </tr>
-                        """ for key_code, key_data in list(charge_keys_display.items())[:20]]) if charge_keys_display else '<tr><td colspan="3" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
+                        """ for key_code, key_data in list(charge_keys_display.items())[:20]]) if charge_keys_display else '<tr><td colspan="4" style="text-align: center;">لا توجد مفاتيح</td></tr>'}
                     </tbody>
                 </table>
             </div>
