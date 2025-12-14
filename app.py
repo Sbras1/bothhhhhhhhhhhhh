@@ -1245,9 +1245,353 @@ HTML_PAGE = """
             margin: 10px 0;
             display: none;
         }
+        
+        /* ========== القائمة الجانبية ========== */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 280px;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            z-index: 2001;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
+        }
+        .sidebar.active {
+            right: 0;
+        }
+        
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+        }
+        .sidebar-close {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        .sidebar-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 32px;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
+        }
+        .sidebar-user-name {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .sidebar-user-id {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+        }
+        .sidebar-balance {
+            background: linear-gradient(135deg, rgba(0, 184, 148, 0.2), rgba(85, 239, 196, 0.2));
+            border: 1px solid rgba(0, 184, 148, 0.4);
+            border-radius: 25px;
+            padding: 8px 20px;
+            display: inline-block;
+            margin-top: 12px;
+            color: #55efc4;
+            font-weight: bold;
+            font-size: 15px;
+        }
+        
+        .sidebar-section {
+            padding: 15px;
+        }
+        .sidebar-section-title {
+            color: #a29bfe;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-right: 5px;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 5px;
+        }
+        .sidebar-menu-item:hover {
+            background: rgba(108, 92, 231, 0.2);
+            color: white;
+            transform: translateX(-5px);
+        }
+        .sidebar-menu-item.active {
+            background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+        }
+        .sidebar-menu-icon {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+        }
+        .sidebar-menu-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .sidebar-menu-badge {
+            margin-right: auto;
+            background: #e74c3c;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .sidebar-categories {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            padding: 0 5px;
+        }
+        .sidebar-cat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .sidebar-cat-item:hover {
+            background: rgba(108, 92, 231, 0.2);
+            border-color: #6c5ce7;
+            transform: scale(1.03);
+        }
+        .sidebar-cat-icon {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        .sidebar-cat-icon img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+        .sidebar-cat-text {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+        
+        .sidebar-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            margin: 10px 15px;
+        }
+        
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: auto;
+        }
+        .sidebar-logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Tajawal', sans-serif;
+            transition: all 0.3s;
+        }
+        .sidebar-logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        /* زر فتح القائمة */
+        .menu-toggle-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            z-index: 1500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+        }
+        .menu-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        /* تعديل padding للـ body لتجنب التداخل مع زر القائمة */
+        body {
+            padding-top: 70px !important;
+        }
     </style>
 </head>
 <body>
+    <!-- زر فتح القائمة الجانبية -->
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
+    
+    <!-- الخلفية المظللة -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    
+    <!-- القائمة الجانبية -->
+    <div class="sidebar" id="sidebar">
+        <!-- رأس القائمة مع معلومات المستخدم -->
+        <div class="sidebar-header">
+            <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+            <div class="sidebar-avatar">👤</div>
+            <div class="sidebar-user-name" id="sidebarUserName">{{ user_name }}</div>
+            <div class="sidebar-user-id">ID: <span id="sidebarUserId">{{ current_user_id }}</span></div>
+            <div class="sidebar-balance">💰 <span id="sidebarBalance">{{ balance }}</span> ريال</div>
+        </div>
+        
+        <!-- روابط سريعة -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">القائمة الرئيسية</div>
+            <div class="sidebar-menu-item active" onclick="scrollToSection('top'); closeSidebar();">
+                <span class="sidebar-menu-icon">🏠</span>
+                <span class="sidebar-menu-text">الرئيسية</span>
+            </div>
+            <div class="sidebar-menu-item" onclick="scrollToSection('market'); closeSidebar();">
+                <span class="sidebar-menu-icon">🛒</span>
+                <span class="sidebar-menu-text">السوق</span>
+            </div>
+            <div class="sidebar-menu-item" onclick="scrollToSection('myPurchases'); closeSidebar();">
+                <span class="sidebar-menu-icon">📦</span>
+                <span class="sidebar-menu-text">مشترياتي</span>
+                {% if my_purchases %}<span class="sidebar-menu-badge">{{ my_purchases|length }}</span>{% endif %}
+            </div>
+            <div class="sidebar-menu-item" onclick="toggleCharge(); closeSidebar();">
+                <span class="sidebar-menu-icon">💳</span>
+                <span class="sidebar-menu-text">شحن الرصيد</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <!-- الأقسام -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">الأقسام</div>
+            <div class="sidebar-categories">
+                <div class="sidebar-cat-item" onclick="filterCategory('نتفلكس'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/732/732228.png" alt="نتفلكس"></div>
+                    <div class="sidebar-cat-text">نتفلكس</div>
+                </div>
+                <div class="sidebar-cat-item" onclick="filterCategory('شاهد'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/3845/3845874.png" alt="شاهد"></div>
+                    <div class="sidebar-cat-text">شاهد</div>
+                </div>
+                <div class="sidebar-cat-item" onclick="filterCategory('ديزني بلس'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/5977/5977590.png" alt="ديزني بلس"></div>
+                    <div class="sidebar-cat-text">ديزني بلس</div>
+                </div>
+                <div class="sidebar-cat-item" onclick="filterCategory('اوسن بلس'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/1946/1946488.png" alt="اوسن بلس"></div>
+                    <div class="sidebar-cat-text">اوسن بلس</div>
+                </div>
+                <div class="sidebar-cat-item" onclick="filterCategory('فديو بريميم'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/3074/3074767.png" alt="فديو بريميم"></div>
+                    <div class="sidebar-cat-text">فديو بريميم</div>
+                </div>
+                <div class="sidebar-cat-item" onclick="filterCategory('اشتراكات أخرى'); closeSidebar();">
+                    <div class="sidebar-cat-icon"><img src="https://cdn-icons-png.flaticon.com/512/2087/2087815.png" alt="أخرى"></div>
+                    <div class="sidebar-cat-text">اشتراكات أخرى</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <!-- المساعدة والتواصل -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">المساعدة</div>
+            <div class="sidebar-menu-item" onclick="window.open('https://t.me/SBRAS1', '_blank');">
+                <span class="sidebar-menu-icon">📞</span>
+                <span class="sidebar-menu-text">تواصل معنا</span>
+            </div>
+            <div class="sidebar-menu-item" onclick="window.open('https://t.me/YourBotUsername', '_blank');">
+                <span class="sidebar-menu-icon">🤖</span>
+                <span class="sidebar-menu-text">البوت</span>
+            </div>
+            <div class="sidebar-menu-item" onclick="scrollToSection('sold'); closeSidebar();">
+                <span class="sidebar-menu-icon">📊</span>
+                <span class="sidebar-menu-text">آخر المبيعات</span>
+            </div>
+        </div>
+        
+        <!-- زر تسجيل الخروج -->
+        <div class="sidebar-footer">
+            <button class="sidebar-logout-btn" onclick="logout()">
+                🚪 تسجيل الخروج
+            </button>
+        </div>
+    </div>
     <!-- نافذة تسجيل الدخول المنبثقة -->
     <div class="login-modal" id="loginModal">
         <div class="login-modal-content">
@@ -1520,7 +1864,7 @@ HTML_PAGE = """
 
     <!-- قسم مشترياتي -->
     {% if my_purchases %}
-    <div style="margin-top: 30px;">
+    <div id="myPurchasesSection" style="margin-top: 30px;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
             <h3 style="margin: 0; color: #00b894;">🛍️ مشترياتي</h3>
             <span style="background: #00b894; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ my_purchases|length }}</span>
@@ -1549,7 +1893,7 @@ HTML_PAGE = """
 
     <!-- قسم المنتجات المباعة -->
     {% if sold_items %}
-    <div style="margin-top: 30px;">
+    <div id="soldSection" style="margin-top: 30px;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
             <h3 style="margin: 0; color: #e74c3c;">✅ المنتجات المباعة</h3>
             <span style="background: #e74c3c; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ sold_items|length }}</span>
@@ -1678,12 +2022,53 @@ HTML_PAGE = """
                     alert('✅ ' + result.message);
                     userBalance = result.new_balance;
                     document.getElementById('balance').textContent = userBalance;
+                    document.getElementById('sidebarBalance').textContent = userBalance;
                     document.getElementById('chargeCodeInput').value = '';
                 } else {
                     alert('❌ ' + result.message);
                 }
             } catch(error) {
                 alert('❌ حدث خطأ في الاتصال');
+            }
+        }
+        
+        // ========== دوال القائمة الجانبية ==========
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function scrollToSection(sectionId) {
+            let element;
+            switch(sectionId) {
+                case 'top':
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                    return;
+                case 'market':
+                    element = document.querySelector('.product-grid');
+                    break;
+                case 'myPurchases':
+                    element = document.getElementById('myPurchasesSection');
+                    break;
+                case 'sold':
+                    element = document.getElementById('soldSection');
+                    break;
+                default:
+                    return;
+            }
+            if(element) {
+                element.scrollIntoView({behavior: 'smooth', block: 'start'});
             }
         }
         
@@ -1999,6 +2384,12 @@ HTML_PAGE = """
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
                     closeModal();
+                    // تحديث الرصيد
+                    if(data.new_balance !== undefined) {
+                        userBalance = data.new_balance;
+                        document.getElementById('balance').textContent = userBalance;
+                        document.getElementById('sidebarBalance').textContent = userBalance;
+                    }
                     showSuccessModal(data.hidden_data, data.message_sent);
                 } else {
                     closeModal();
@@ -3286,7 +3677,8 @@ def buy_item():
             'status': 'success',
             'hidden_data': hidden_info,
             'order_id': order_id,
-            'message_sent': message_sent
+            'message_sent': message_sent,
+            'new_balance': new_balance
         }
 
     except Exception as e:
