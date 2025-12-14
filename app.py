@@ -1422,14 +1422,15 @@ HTML_PAGE = """
             <div class="modal-body">
                 <div class="success-icon">🎉</div>
                 <div class="success-message">
-                    تم شراء المنتج بنجاح!<br>
-                    تحقق من رسائل البوت لاستلام بيانات الحساب
+                    تم شراء المنتج بنجاح!
                 </div>
-                <div class="success-note">
-                    📱 افتح البوت الآن للحصول على:<br>
-                    🔐 البريد الإلكتروني<br>
-                    🔑 كلمة المرور<br>
-                    ✨ استمتع بخدمتك!
+                <div id="purchaseDataContainer" style="display: none; background: #1a1a2e; border-radius: 10px; padding: 15px; margin: 15px 0; text-align: right;">
+                    <div style="color: #00b894; font-weight: bold; margin-bottom: 10px;">🔐 بيانات الاشتراك:</div>
+                    <div id="purchaseHiddenData" style="background: #2d3436; padding: 12px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; word-break: break-all; color: #fdcb6e; font-size: 14px;"></div>
+                    <button onclick="copyPurchaseData()" style="margin-top: 10px; padding: 8px 20px; background: #00b894; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">📋 نسخ البيانات</button>
+                </div>
+                <div id="botMessageNote" class="success-note">
+                    📱 تحقق أيضاً من رسائل البوت
                 </div>
             </div>
             <div class="modal-footer">
@@ -1998,7 +1999,7 @@ HTML_PAGE = """
             }).then(r => r.json()).then(data => {
                 if(data.status == 'success') {
                     closeModal();
-                    showSuccessModal();
+                    showSuccessModal(data.hidden_data, data.message_sent);
                 } else {
                     closeModal();
                     alert('❌ ' + data.message);
@@ -2006,12 +2007,50 @@ HTML_PAGE = """
             });
         }
 
-        function showSuccessModal() {
+        let lastPurchaseData = '';
+        
+        function showSuccessModal(hiddenData, messageSent) {
+            const container = document.getElementById('purchaseDataContainer');
+            const dataDiv = document.getElementById('purchaseHiddenData');
+            const botNote = document.getElementById('botMessageNote');
+            
+            if(hiddenData && hiddenData !== 'لا توجد بيانات') {
+                container.style.display = 'block';
+                dataDiv.textContent = hiddenData;
+                lastPurchaseData = hiddenData;
+                
+                if(messageSent) {
+                    botNote.innerHTML = '✅ تم إرسال البيانات أيضاً للبوت';
+                    botNote.style.color = '#00b894';
+                } else {
+                    botNote.innerHTML = '⚠️ لم يتم إرسال البيانات للبوت (ابدأ محادثة مع البوت أولاً)';
+                    botNote.style.color = '#fdcb6e';
+                }
+            } else {
+                container.style.display = 'none';
+            }
+            
             document.getElementById('successModal').style.display = 'block';
+        }
+        
+        function copyPurchaseData() {
+            navigator.clipboard.writeText(lastPurchaseData).then(() => {
+                alert('✅ تم نسخ البيانات!');
+            }).catch(() => {
+                // fallback للأجهزة القديمة
+                const textArea = document.createElement('textarea');
+                textArea.value = lastPurchaseData;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ تم نسخ البيانات!');
+            });
         }
 
         function closeSuccessModal() {
             document.getElementById('successModal').style.display = 'none';
+            document.getElementById('purchaseDataContainer').style.display = 'none';
             location.reload();
         }
 
@@ -3200,30 +3239,55 @@ def buy_item():
                 break
 
         # 6. إرسال المنتج للمشتري
+        hidden_info = item.get('hidden_data', 'لا توجد بيانات')
+        message_sent = False
+        
         try:
-            hidden_info = item.get('hidden_data', 'لا توجد بيانات')
             bot.send_message(
                 int(buyer_id),
                 f"✅ **تم الشراء بنجاح!**\n\n"
                 f"📦 المنتج: {item.get('item_name')}\n"
                 f"💰 السعر: {price} ريال\n"
                 f"🆔 رقم الطلب: #{order_id}\n\n"
-                f"🔐 **بياناتك:**\n`{hidden_info}`",
+                f"🔐 **بيانات الاشتراك:**\n`{hidden_info}`\n\n"
+                f"⚠️ احفظ هذه البيانات في مكان آمن!",
                 parse_mode="Markdown"
             )
+            message_sent = True
+            print(f"✅ تم إرسال بيانات المنتج للمشتري {buyer_id}")
             
             # إشعار للمالك
             bot.send_message(
                 ADMIN_ID,
                 f"🔔 **عملية بيع جديدة!**\n"
                 f"📦 المنتج: {item.get('item_name')}\n"
-                f"👤 المشتري: {buyer_name}\n"
-                f"💰 السعر: {price} ريال"
+                f"👤 المشتري: {buyer_name} ({buyer_id})\n"
+                f"💰 السعر: {price} ريال\n"
+                f"✅ تم إرسال البيانات للمشتري"
             )
         except Exception as e:
-            print(f"⚠️ فشل إرسال الرسالة: {e}")
+            print(f"⚠️ فشل إرسال الرسالة للمشتري {buyer_id}: {e}")
+            # إشعار المالك بالفشل
+            try:
+                bot.send_message(
+                    ADMIN_ID,
+                    f"⚠️ **تنبيه: فشل إرسال بيانات المنتج!**\n"
+                    f"📦 المنتج: {item.get('item_name')}\n"
+                    f"👤 المشتري: {buyer_name} ({buyer_id})\n"
+                    f"🔐 البيانات: `{hidden_info}`\n"
+                    f"❌ السبب: المشتري لم يبدأ محادثة مع البوت",
+                    parse_mode="Markdown"
+                )
+            except:
+                pass
 
-        return {'status': 'success'}
+        # إرجاع البيانات للموقع أيضاً
+        return {
+            'status': 'success',
+            'hidden_data': hidden_info,
+            'order_id': order_id,
+            'message_sent': message_sent
+        }
 
     except Exception as e:
         print(f"❌ Error in buy_item: {e}")
