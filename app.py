@@ -3301,18 +3301,31 @@ def verify_login():
     # تسجيل دخول المستخدم
     session['user_id'] = user_id
     session['user_name'] = code_data['name']
-    
+
     # حذف الكود بعد الاستخدام
     del verification_codes[str(user_id)]
-    
+
     # جلب الرصيد
     balance = get_balance(user_id)
-    
+
+    # جلب صورة الحساب من تيليجرام
+    profile_photo_url = None
+    try:
+        photos = bot.get_user_profile_photos(int(user_id), limit=1)
+        if photos.total_count > 0:
+            file_id = photos.photos[0][0].file_id
+            file_info = bot.get_file(file_id)
+            token = bot.token
+            profile_photo_url = f"https://api.telegram.org/file/bot{token}/{file_info.file_path}"
+    except Exception as e:
+        print(f"⚠️ خطأ في جلب صورة الحساب: {e}")
+
     return {
         'success': True,
         'message': 'تم تسجيل الدخول بنجاح',
         'user_name': code_data['name'],
-        'balance': balance
+        'balance': balance,
+        'profile_photo_url': profile_photo_url
     }
 
 @app.route('/')
