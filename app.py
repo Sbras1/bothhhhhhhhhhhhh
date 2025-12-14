@@ -1306,8 +1306,6 @@ HTML_PAGE = """
                 <span class="account-value"><span id="balance">0</span> ريال</span>
             </div>
             
-            <button class="orders-btn" onclick="toggleOrders()">📦 طلباتي</button>
-            
             <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
         </div>
     </div>
@@ -1338,17 +1336,6 @@ HTML_PAGE = """
                     <a href="#" class="quick-charge-btn" onclick="copyToClipboard('100')">100 ريال</a>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- قسم الطلبات -->
-    <div class="orders-section" id="ordersSection">
-        <div class="orders-header">
-            <h3>📦 طلباتي</h3>
-            <span class="close-orders" onclick="toggleOrders()">✕</span>
-        </div>
-        <div class="orders-list" id="ordersList">
-            <p style="text-align:center; color:#888;">جاري التحميل...</p>
         </div>
     </div>
 
