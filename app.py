@@ -4,7 +4,7 @@
 import os
 import telebot
 from telebot import types
-from flask import Flask, request, render_template_string, redirect, session
+from flask import Flask, request, render_template_string, redirect, session, jsonify
 import json
 import random
 import hashlib
@@ -3042,6 +3042,65 @@ def get_balance_api():
     
     balance = get_balance(user_id)
     return {'balance': balance}
+
+@app.route('/charge_balance', methods=['POST'])
+def charge_balance_api():
+    """شحن الرصيد باستخدام كود الشحن"""
+    data = request.json
+    user_id = str(data.get('user_id'))
+    key_code = data.get('charge_key', '').strip()
+    
+    if not user_id or not key_code:
+        return jsonify({'success': False, 'message': 'بيانات غير مكتملة'})
+    
+    # التحقق من وجود الكود
+    if key_code not in charge_keys:
+        return jsonify({'success': False, 'message': 'كود الشحن غير صحيح أو غير موجود'})
+    
+    key_data = charge_keys[key_code]
+    
+    # التحقق من أن الكود لم يستخدم
+    if key_data.get('used', False):
+        return jsonify({'success': False, 'message': 'هذا الكود تم استخدامه مسبقاً'})
+    
+    # شحن الرصيد
+    amount = key_data['amount']
+    current_balance = get_balance(user_id)
+    new_balance = current_balance + amount
+    
+    # تحديث الرصيد في الذاكرة
+    users_wallets[user_id] = new_balance
+    
+    # تحديث الكود كمستخدم
+    charge_keys[key_code]['used'] = True
+    charge_keys[key_code]['used_by'] = user_id
+    charge_keys[key_code]['used_at'] = time.time()
+    
+    # تحديث في Firebase
+    if db:
+        try:
+            # تحديث رصيد المستخدم
+            user_ref = db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            if user_doc.exists:
+                user_ref.update({'balance': new_balance})
+            else:
+                user_ref.set({'user_id': user_id, 'balance': new_balance})
+            
+            # تحديث حالة الكود
+            db.collection('charge_keys').document(key_code).update({
+                'used': True,
+                'used_by': user_id,
+                'used_at': time.time()
+            })
+        except Exception as e:
+            print(f"خطأ في تحديث Firebase: {e}")
+    
+    return jsonify({
+        'success': True, 
+        'message': f'تم شحن {amount} ريال بنجاح!',
+        'new_balance': new_balance
+    })
 
 @app.route('/sell', methods=['POST'])
 def sell_item():
