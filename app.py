@@ -1522,7 +1522,7 @@ HTML_PAGE = """
                 <span class="sidebar-menu-icon">🛒</span>
                 <span class="sidebar-menu-text">السوق</span>
             </div>
-            <div class="sidebar-menu-item" onclick="scrollToSection('myPurchases'); closeSidebar();">
+            <div class="sidebar-menu-item" onclick="window.location.href='/my_purchases';">
                 <span class="sidebar-menu-icon">📦</span>
                 <span class="sidebar-menu-text">مشترياتي</span>
                 {% if my_purchases %}<span class="sidebar-menu-badge">{{ my_purchases|length }}</span>{% endif %}
@@ -1861,35 +1861,6 @@ HTML_PAGE = """
         </div>
         {% endfor %}
     </div>
-
-    <!-- قسم مشترياتي -->
-    {% if my_purchases %}
-    <div id="myPurchasesSection" style="margin-top: 30px;">
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-            <h3 style="margin: 0; color: #00b894;">🛍️ مشترياتي</h3>
-            <span style="background: #00b894; color: white; padding: 3px 10px; border-radius: 15px; font-size: 12px;">{{ my_purchases|length }}</span>
-        </div>
-        <div class="product-grid">
-            {% for purchase in my_purchases %}
-            <div class="product-card" style="border: 2px solid #00b894;">
-                <div class="product-badge" style="background: linear-gradient(135deg, #00b894, #00cec9);">مشترياتي ✓</div>
-                <div class="product-image" style="background: linear-gradient(135deg, #00b894, #00cec9);">
-                    🎉
-                </div>
-                <div class="product-info">
-                    <span class="product-category" style="background: rgba(0, 184, 148, 0.2); color: #00b894;">{{ purchase.get('item_name', 'منتج') }}</span>
-                    <div class="product-name">{{ purchase.get('item_name', 'منتج') }}</div>
-                    <div class="product-seller">🆔 #{{ purchase.get('order_id', '')[:12] }}</div>
-                    <div class="product-footer">
-                        <div class="product-price">{{ purchase.get('price', 0) }} ريال</div>
-                        <span style="color: #00b894; font-weight: bold; font-size: 12px;">✅ مكتمل</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 
     <!-- قسم المنتجات المباعة -->
     {% if sold_items %}
@@ -3448,6 +3419,338 @@ def index():
                                   balance=balance, 
                                   current_user_id=user_id or 0, 
                                   user_name=user_name)
+
+# صفحة مشترياتي المنفصلة
+MY_PURCHASES_PAGE = """
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مشترياتي - سوق البوت</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --green: #00b894;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            min-height: 100vh;
+        }
+        
+        /* الهيدر */
+        .page-header {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        .page-title {
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .purchases-count {
+            background: white;
+            color: #00b894;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* المحتوى */
+        .page-content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* بطاقة المشتريات */
+        .purchase-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 2px solid #00b894;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.2);
+        }
+        .purchase-header {
+            background: linear-gradient(135deg, rgba(0, 184, 148, 0.2), rgba(85, 239, 196, 0.1));
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 184, 148, 0.3);
+        }
+        .purchase-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00b894;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .purchase-badge {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .purchase-body {
+            padding: 20px;
+        }
+        .purchase-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .purchase-info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #888;
+            font-size: 14px;
+        }
+        .info-value {
+            font-weight: bold;
+            font-size: 15px;
+        }
+        .info-value.price {
+            color: #00b894;
+            font-size: 18px;
+        }
+        
+        /* بيانات الاشتراك */
+        .subscription-data {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(162, 155, 254, 0.1));
+            border: 2px dashed #6c5ce7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .subscription-title {
+            color: #a29bfe;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .subscription-content {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #55efc4;
+            word-break: break-all;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: #6c5ce7;
+            border: none;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'Tajawal', sans-serif;
+            transition: all 0.3s;
+        }
+        .copy-btn:hover {
+            background: #5b4cdb;
+            transform: scale(1.05);
+        }
+        
+        /* رسالة فارغة */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .empty-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        .empty-text {
+            color: #888;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .shop-btn {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .shop-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 184, 148, 0.4);
+        }
+        
+        /* الفئة */
+        .category-badge {
+            background: rgba(162, 155, 254, 0.2);
+            color: #a29bfe;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="header-content">
+            <a href="/" class="back-btn">→</a>
+            <h1 class="page-title">
+                🛍️ مشترياتي
+            </h1>
+            <span class="purchases-count">{{ purchases|length }} منتج</span>
+        </div>
+    </div>
+    
+    <div class="page-content">
+        {% if purchases %}
+            {% for purchase in purchases %}
+            <div class="purchase-card">
+                <div class="purchase-header">
+                    <div class="purchase-title">
+                        📦 {{ purchase.get('item_name', 'منتج') }}
+                    </div>
+                    <span class="purchase-badge">تم الشراء ✓</span>
+                </div>
+                <div class="purchase-body">
+                    <div class="purchase-info-row">
+                        <span class="info-label">🏷️ الفئة:</span>
+                        <span class="category-badge">{{ purchase.get('category', 'غير محدد') }}</span>
+                    </div>
+                    <div class="purchase-info-row">
+                        <span class="info-label">💰 السعر:</span>
+                        <span class="info-value price">{{ purchase.get('price', 0) }} ريال</span>
+                    </div>
+                    <div class="purchase-info-row">
+                        <span class="info-label">📅 تاريخ الشراء:</span>
+                        <span class="info-value">{{ purchase.get('sold_at', 'غير محدد') }}</span>
+                    </div>
+                    
+                    {% if purchase.get('hidden_data') %}
+                    <div class="subscription-data">
+                        <div class="subscription-title">
+                            🔐 بيانات الاشتراك
+                        </div>
+                        <div class="subscription-content" id="data-{{ loop.index }}">
+                            {{ purchase.get('hidden_data') }}
+                            <button class="copy-btn" onclick="copyData('{{ purchase.get('hidden_data') }}')">📋 نسخ</button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🛒</div>
+                <p class="empty-text">لم تقم بأي عملية شراء بعد</p>
+                <a href="/" class="shop-btn">🛍️ تصفح المنتجات</a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <script>
+        function copyData(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ تم نسخ البيانات!');
+            }).catch(() => {
+                // Fallback
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ تم نسخ البيانات!');
+            });
+        }
+    </script>
+</body>
+</html>
+"""
+
+@app.route('/my_purchases')
+def my_purchases_page():
+    """صفحة مشترياتي المنفصلة"""
+    user_id = session.get('user_id') or request.args.get('user_id')
+    
+    if not user_id:
+        return redirect('/')
+    
+    # جلب مشتريات المستخدم من Firebase
+    purchases = []
+    try:
+        orders_ref = query_where(db.collection('orders'), 'buyer_id', '==', str(user_id))
+        for doc in orders_ref.stream():
+            data = doc.to_dict()
+            data['id'] = doc.id
+            # تحويل الوقت إذا وجد
+            if data.get('created_at'):
+                try:
+                    data['sold_at'] = data['created_at'].strftime('%Y-%m-%d %H:%M')
+                except:
+                    data['sold_at'] = 'غير محدد'
+            purchases.append(data)
+        # ترتيب من الأحدث للأقدم
+        purchases.reverse()
+    except Exception as e:
+        print(f"❌ خطأ في جلب المشتريات: {e}")
+    
+    return render_template_string(MY_PURCHASES_PAGE, purchases=purchases)
 
 @app.route('/get_balance')
 def get_balance_api():
