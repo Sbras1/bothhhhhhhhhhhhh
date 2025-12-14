@@ -3579,12 +3579,25 @@ MY_PURCHASES_PAGE = """
         .subscription-content {
             background: rgba(0, 0, 0, 0.3);
             padding: 12px;
+            padding-left: 80px;
             border-radius: 8px;
             font-family: monospace;
             font-size: 14px;
             color: #55efc4;
             word-break: break-all;
             position: relative;
+            min-height: 50px;
+        }
+        .subscription-content .data-text {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 14px;
+            color: #55efc4;
+            background: none;
+            border: none;
+            padding: 0;
         }
         .copy-btn {
             position: absolute;
@@ -3593,12 +3606,13 @@ MY_PURCHASES_PAGE = """
             background: #6c5ce7;
             border: none;
             color: white;
-            padding: 5px 12px;
+            padding: 8px 15px;
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
             transition: all 0.3s;
+            z-index: 5;
         }
         .copy-btn:hover {
             background: #5b4cdb;
@@ -3685,9 +3699,9 @@ MY_PURCHASES_PAGE = """
                         <div class="subscription-title">
                             🔐 بيانات الاشتراك
                         </div>
-                        <div class="subscription-content" id="data-{{ loop.index }}">
-                            {{ purchase.get('hidden_data') }}
-                            <button class="copy-btn" onclick="copyData('{{ purchase.get('hidden_data') }}')">📋 نسخ</button>
+                        <div class="subscription-content">
+                            <pre class="data-text" id="data-text-{{ loop.index }}">{{ purchase.get('hidden_data') }}</pre>
+                            <button class="copy-btn" onclick="copyData({{ loop.index }})">📋 نسخ</button>
                         </div>
                     </div>
                     {% endif %}
@@ -3704,19 +3718,41 @@ MY_PURCHASES_PAGE = """
     </div>
     
     <script>
-        function copyData(text) {
+        function copyData(index) {
+            const textElement = document.getElementById('data-text-' + index);
+            const text = textElement.innerText || textElement.textContent;
+            
             navigator.clipboard.writeText(text).then(() => {
-                alert('✅ تم نسخ البيانات!');
+                showCopySuccess();
             }).catch(() => {
-                // Fallback
+                // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
                 document.body.appendChild(textArea);
                 textArea.select();
-                document.execCommand('copy');
+                try {
+                    document.execCommand('copy');
+                    showCopySuccess();
+                } catch(e) {
+                    alert('❌ فشل النسخ، حاول تحديد النص يدوياً');
+                }
                 document.body.removeChild(textArea);
-                alert('✅ تم نسخ البيانات!');
             });
+        }
+        
+        function showCopySuccess() {
+            // إنشاء إشعار نجاح
+            const toast = document.createElement('div');
+            toast.innerHTML = '✅ تم نسخ البيانات!';
+            toast.style.cssText = 'position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #00b894, #00cec9); color: white; padding: 15px 30px; border-radius: 25px; font-weight: bold; z-index: 9999; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: fadeInUp 0.3s;';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
     </script>
 </body>
